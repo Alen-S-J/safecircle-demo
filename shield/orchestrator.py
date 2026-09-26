@@ -196,8 +196,30 @@ def handle_item(
     # Combined floor: max of rules + model probability floors.
     floor_order = {"low": 0, "medium": 1, "high": 2}
     combined_floor = rule_floor_policy
-    if floor_order.get(model_floor, 0) > floor_order.get(combined_floor, 0):
+    # Guard: known-benign OTP / no-ask official alerts — ML alone must not escalate.
+    # Spec must-pass: real bank OTP with "do not share" stays severity none.
+    actionable = signals - rules.INTERNAL_SIGNALS - {"bank_impersonation"}
+    benign_guard = (
+        rule_floor_policy == "low"
+        and rule_category in ("none",)
+        and rules_stage == "contact"
+        and not actionable
+        and bool(rules.OTP_SAFETY_NOTICE.search(text or ""))
+    )
+    if benign_guard:
+        model_floor = "low"
+        # Keep probability for the UI/trace, but don't let it set the floor.
+    if not benign_guard and floor_order.get(model_floor, 0) > floor_order.get(combined_floor, 0):
         combined_floor = model_floor
+    # Also allow ML/detection to raise when there are some signals but rules stayed low
+    # (subtle scams), except under the benign OTP guard above.
+    if (
+        not benign_guard
+        and model_floor == "high"
+        and floor_order.get(combined_floor, 0) < 2
+        and (actionable or (p_det is not None and p_det >= 0.85))
+    ):
+        combined_floor = "high"
     # Re-apply playbooks after adding detection signals.
     play_risk, play_cat = rules.apply_playbooks(signals)
     if floor_order.get(play_risk, 0) > floor_order.get(combined_floor, 0):

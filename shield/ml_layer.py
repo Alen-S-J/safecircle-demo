@@ -1,6 +1,8 @@
 """
 Lazy ML inference singleton. Returns None when artifacts or deps are missing
 so the server always degrades to rules (+ optional LLM).
+
+Works with BERT-only checkpoints or the full BERT+GNN+XGBoost stack.
 """
 from __future__ import annotations
 
@@ -14,15 +16,16 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS_DIR = os.environ.get("SAFECIRCLE_MODELS", os.path.join(ROOT, "models"))
 
 _lock = threading.Lock()
-_state = {"loaded": False, "ok": False, "err": None, "bundle": None}
+_state = {"loaded": False, "ok": False, "err": None, "bundle": None, "mode": None}
 
 
 def available() -> bool:
-    meta = os.path.join(MODELS_DIR, "meta.json")
-    return os.path.isfile(meta) and (
-        os.path.isdir(os.path.join(MODELS_DIR, "bert"))
-        or os.path.isfile(os.path.join(MODELS_DIR, "xgb.json"))
-    )
+    try:
+        from ml.infer import bert_available
+        return bert_available(MODELS_DIR)
+    except Exception:
+        best = os.path.join(MODELS_DIR, "bert", "best", "config.json")
+        return os.path.isfile(best)
 
 
 def status() -> dict:
@@ -33,25 +36,56 @@ def status() -> dict:
             metrics = json.load(open(metrics_path, encoding="utf-8"))
         except Exception:
             metrics = {}
+
     meta = {}
-    meta_path = os.path.join(MODELS_DIR, "meta.json")
-    if os.path.isfile(meta_path):
+    for path in (
+        os.path.join(MODELS_DIR, "meta.json"),
+        os.path.join(MODELS_DIR, "bert", "bert_meta.json"),
+    ):
+        if os.path.isfile(path):
+            try:
+                meta = json.load(open(path, encoding="utf-8"))
+                break
+            except Exception:
+                pass
+
+    mode = _state.get("mode")
+    if not mode and available():
         try:
-            meta = json.load(open(meta_path, encoding="utf-8"))
+            from ml.infer import full_stack_available
+            mode = "full" if full_stack_available(MODELS_DIR) else "bert_only"
         except Exception:
-            meta = {}
+            mode = "bert_only"
+
+    label = {
+        "full": "BERT+GNN+XGB",
+        "bert_only": "BERT",
+    }.get(mode or "", None)
+
     return {
         "available": available(),
         "loaded": _state["ok"],
         "error": _state["err"],
+        "mode": mode,
+        "label": label,
         "backbone": meta.get("backbone", "xlm-roberta-base"),
+        "val_f1": meta.get("best_val_f1") or metrics.get("test_f1"),
         "metrics": {
             "test_auroc": metrics.get("test_auroc"),
-            "test_f1": metrics.get("test_f1"),
+            "test_f1": metrics.get("test_f1") or meta.get("best_val_f1"),
             "scam_recall": metrics.get("scam_recall"),
             "genuine_fpr": metrics.get("genuine_fpr"),
-        } if metrics else {},
+            "best_val_f1": meta.get("best_val_f1"),
+        },
     }
+
+
+def warmup() -> bool:
+    """Load weights eagerly (e.g. at server start) so the first check is fast."""
+    if not available():
+        return False
+    _load()
+    return bool(_state["ok"])
 
 
 def _load():
@@ -63,10 +97,14 @@ def _load():
         _state["loaded"] = True
         try:
             from ml.infer import load_bundle
-            _state["bundle"] = load_bundle(MODELS_DIR)
-            _state["ok"] = _state["bundle"] is not None
+            bundle = load_bundle(MODELS_DIR)
+            _state["bundle"] = bundle
+            _state["ok"] = bundle is not None
+            _state["mode"] = getattr(bundle, "mode", None) if bundle else None
             if not _state["ok"]:
                 _state["err"] = "bundle missing"
+            else:
+                print(f"[ml_layer] loaded mode={_state['mode']} device={getattr(bundle, 'bert_dev', '?')}")
         except Exception as exc:
             _state["err"] = str(exc)
             _state["ok"] = False

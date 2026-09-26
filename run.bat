@@ -29,6 +29,9 @@ if not exist ".env" (
 echo  Installing/checking openai package...
 python -m pip install -q -r requirements.txt 2>nul
 
+REM Prefer CPU for ML inference in the demo server (stable on laptop GPUs)
+if not defined SAFECIRCLE_ML_DEVICE set SAFECIRCLE_ML_DEVICE=cpu
+
 set PORT=8000
 set HOST=127.0.0.1
 
@@ -36,6 +39,7 @@ echo.
 echo  Starting server at http://localhost:%PORT%
 echo    Main UI:   http://localhost:%PORT%/
 echo    3-panel:   http://localhost:%PORT%/demo.html
+echo  ML device:   %SAFECIRCLE_ML_DEVICE%
 echo  Press Ctrl+C to stop.
 echo.
 

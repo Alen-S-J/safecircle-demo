@@ -778,8 +778,18 @@ async function boot() {
     $('aiPill').textContent=st.ai?`AI · ${st.model||'openai'}`:'Rules only';
     $('aiPill').className='pill'+(st.ai?' on':'');
     const ml = st.ml||{};
-    $('mlPill').textContent = ml.available ? 'ML on' : 'ML off';
-    $('mlPill').className='pill'+(ml.available?' on':'');
+    if (ml.available) {
+      const f1 = ml.val_f1!=null ? ` · F1 ${Number(ml.val_f1).toFixed(2)}` : '';
+      $('mlPill').textContent = `ML ${ml.label||ml.mode||'on'}${f1}`;
+      $('mlPill').title = ml.loaded
+        ? `Loaded · ${ml.mode} · ${ml.backbone||''}`
+        : `Present, loading… ${ml.error||''}`;
+      $('mlPill').className='pill on';
+    } else {
+      $('mlPill').textContent='ML off';
+      $('mlPill').title='No BERT checkpoint in models/bert/best';
+      $('mlPill').className='pill';
+    }
     const welcome = st.ai
       ? 'Ready. Type as the scammer in the left panel, then tap Forward. Reply Assistant drafts for you; takeover is demo-only.'
       : 'Running on rules (no API key). Paste messages to check them. Screenshots need AI mode.';

@@ -203,6 +203,7 @@ button { cursor: pointer; }
   <span class="tag">Local demo of the scam-check companion</span>
   <span class="spacer"></span>
   <span class="pill" id="aiPill">Checking…</span>
+  <span class="pill" id="mlPill">ML …</span>
   <button class="linkbtn" id="resetBtn">Reset demo</button>
   <div class="views" role="tablist" aria-label="Choose view">
     <button role="tab" aria-selected="true" data-view="elder" id="tabElder">Asha's phone</button>
@@ -633,8 +634,22 @@ $("#resetBtn").onclick = async () => {
     state.ai = status.ai; state.settings = settings; state.samples = samples;
     const pill = $("#aiPill");
     pill.textContent = status.ai ? "AI checking on" : "Rules only";
-    pill.title = status.ai ? `Model: ${status.model}` : "Add ANTHROPIC_API_KEY to read screenshots and catch subtler scams";
+    pill.title = status.ai ? `Model: ${status.model}` : "Add OPENAI_API_KEY to .env for AI checking";
     pill.classList.toggle("on", status.ai);
+    const ml = status.ml || {};
+    const mlPill = $("#mlPill");
+    if (ml.available) {
+      const f1 = ml.val_f1 != null ? ` · F1 ${Number(ml.val_f1).toFixed(2)}` : "";
+      mlPill.textContent = `ML ${ml.label || ml.mode || "on"}${f1}`;
+      mlPill.title = ml.loaded
+        ? `Loaded (${ml.mode}) · ${ml.backbone || ""}`
+        : `Artifacts present; loading… ${ml.error || ""}`;
+      mlPill.classList.toggle("on", true);
+    } else {
+      mlPill.textContent = "ML off";
+      mlPill.title = "No models/bert checkpoint found";
+      mlPill.classList.remove("on");
+    }
   } catch {
     $("#aiPill").textContent = "Server not reachable";
   }

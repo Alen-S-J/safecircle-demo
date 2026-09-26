@@ -223,8 +223,20 @@ def main():
 
     store.conn()
     ml_st = ml_layer.status()
+    if ml_st.get("available"):
+        print("  Loading ML model…", flush=True)
+        ml_layer.warmup()
+        ml_st = ml_layer.status()
     mode = f"rules + AI ({llm.model_name()})" if AI_ENABLED and llm.available() else "rules only"
-    ml_mode = "on" if ml_st.get("available") else "off"
+    if ml_st.get("available") and ml_st.get("loaded"):
+        ml_mode = f"on ({ml_st.get('label') or ml_st.get('mode')}"
+        if ml_st.get("val_f1") is not None:
+            ml_mode += f", val F1 {float(ml_st['val_f1']):.3f}"
+        ml_mode += ")"
+    elif ml_st.get("available"):
+        ml_mode = f"available but not loaded ({ml_st.get('error') or 'warming'})"
+    else:
+        ml_mode = "off"
     print(f"\n  SafeCircle demo running at http://{'localhost' if args.host == '127.0.0.1' else args.host}:{args.port}")
     print(f"  Detection mode: {mode}  |  ML: {ml_mode}  |  policy {POLICY_VERSION}")
     print(f"  Three-panel demo: http://localhost:{args.port}/demo.html")
