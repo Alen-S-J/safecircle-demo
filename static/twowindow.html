@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SafeCircle · Two-window demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Neutral surface */
+  --bg: #EEF1EC; --surface: #FFFFFF; --line: #D5DAD3;
+  /* Text */
+  --ink: #1C2541; --ink-2: #4A5470; --ink-3: #8890A2;
+  /* Brand – SafeCircle channel */
+  --brand: #0F6B6F; --brand-tint: #DCEDEC; --brand-ink: #FFFFFF;
+  /* Threat channel – cool-red undertone */
+  --threat: #3B2E4A; --threat-tint: #EEE9F5; --threat-line: #C8BEDD;
+  /* Risk colours */
+  --high: #B42F1B; --high-t: #FBE6E1; --mid: #B87A0A; --mid-t: #FEF2D4;
+  --low: #2E7A4A; --low-t: #E1F0E5;
+  /* Bubbles */
+  --bub-scammer: #F0ECF7; --bub-user: #D6EFE3;
+  --bub-agent: #CFE9EA; --bub-sc-user: #D6EFE3;
+  --font: "Mukta","Noto Sans Devanagari","Nirmala UI",system-ui,sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141821; --surface: #1D2230; --line: #2A3040;
+    --ink: #E0E4F0; --ink-2: #A8B0C8; --ink-3: #6B7490;
+    --brand: #3BA7A8; --brand-tint: #16393A; --brand-ink: #0B1B1C;
+    --threat: #A898C0; --threat-tint: #22183A; --threat-line: #3D3058;
+    --high: #F07B63; --high-t: #3A1C17; --mid: #EDBB5A; --mid-t: #352610;
+    --low: #6BC08A; --low-t: #16301F;
+    --bub-scammer: #2A2040; --bub-user: #1F3D33;
+    --bub-agent: #163636; --bub-sc-user: #1F3D33;
+    color-scheme: dark;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ── Layout ── */
+.frame{display:flex;flex-direction:column;height:100%;max-height:100dvh}
+.topbar{flex:none;display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--line);background:var(--surface)}
+.wordmark{font-weight:700;font-size:20px;letter-spacing:-0.01em;display:flex;align-items:center;gap:8px}
+.ring{width:18px;height:18px;border-radius:50%;border:3px solid var(--brand);position:relative}
+.ring::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--brand)}
+.pill{font-size:12px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--ink-3)}
+.pill.on{border-color:var(--brand);color:var(--brand)}
+.sp{flex:1}
+.tagline{font-size:13px;color:var(--ink-3)}
+
+.workspace{flex:1;min-height:0;display:grid;grid-template-columns:1fr 44px 1fr;gap:0}
+/* mobile */
+@media(max-width:780px){
+  .workspace{grid-template-columns:1fr;grid-template-rows:1fr 40px 1fr}
+  .bridge{flex-direction:row;justify-content:center;border-left:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+}
+
+/* ── Column shared ── */
+.col{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--line)}
+.col:last-child{border-right:0}
+.col-head{flex:none;display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.col-head .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.col-head .dot.threat{background:var(--threat)}
+.col-head .dot.safe{background:var(--brand)}
+.col-head .title{font-weight:700;font-size:16px}
+.col-head .sub{font-size:13px;color:var(--ink-3);margin-left:2px}
+.col-head .sp{flex:1}
+
+/* ── Chat ── */
+.chat{flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;overscroll-behavior:contain}
+.chat>*{flex-shrink:0}
+.msg{max-width:85%;padding:8px 12px;border-radius:14px;font-size:16px;line-height:1.45;word-wrap:break-word;white-space:pre-wrap}
+.msg.scammer{align-self:flex-start;background:var(--bub-scammer);border-bottom-left-radius:3px}
+.msg.user{align-self:flex-end;background:var(--bub-user);border-bottom-right-radius:3px}
+.msg.agent{align-self:flex-start;background:var(--bub-agent);border-bottom-left-radius:3px;border-left:3px solid var(--brand)}
+.msg.sc-user{align-self:flex-end;background:var(--bub-sc-user);border-bottom-right-radius:3px}
+.label{font-size:11px;color:var(--ink-3);margin-bottom:2px;font-weight:600;letter-spacing:.02em}
+.label.r{text-align:right}
+.msg-wrap{display:flex;flex-direction:column}
+
+/* ── Verdict card ── */
+.verdict{border-radius:14px;overflow:hidden;font-size:15px;animation:pop .25s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.verdict{animation:none}}
+.verdict .band{display:flex;align-items:flex-start;gap:10px;padding:10px 12px}
+.verdict .glyph{width:32px;height:32px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:16px;color:#fff}
+.verdict .hed{flex:1;font-weight:700;font-size:17px;line-height:1.25}
+.verdict.high .band{background:var(--high-t);color:var(--high)}.verdict.high .glyph{background:var(--high)}
+.verdict.medium .band{background:var(--mid-t);color:var(--mid)}.verdict.medium .glyph{background:var(--mid)}
+.verdict.low .band{background:var(--low-t);color:var(--low)}.verdict.low .glyph{background:var(--low)}
+.verdict .body{padding:8px 12px;background:var(--surface)}
+.verdict ul{padding-left:18px;margin-bottom:6px}
+.verdict li{margin:2px 0}
+.verdict .act{font-weight:600;margin-bottom:6px;font-size:15px}
+.verdict .foot{font-size:13px;color:var(--ink-2)}
+.verdict .btns{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.verdict .btns button{border:0;border-top:1px solid var(--line);background:transparent;color:var(--brand);font-weight:600;font-size:16px;min-height:48px;padding:8px 12px;text-align:center}
+.verdict .btns button:first-child{border-top:0}
+.verdict .btns button:hover{background:var(--brand-tint)}
+.verdict .btns button:disabled{color:var(--ink-3);cursor:default;background:transparent}
+.verdict .btns button.danger{color:var(--high)}
+.verdict .btns button.danger:hover{background:var(--high-t)}
+.steps{padding-left:20px;margin:4px 0}
+.steps li{margin:4px 0;font-size:15px}
+
+/* forward button on scammer messages */
+.fwd-btn{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:12px;border:1px solid var(--brand);border-radius:8px;padding:2px 8px;background:transparent;color:var(--brand);align-self:flex-start}
+.fwd-btn:hover{background:var(--brand-tint)}
+.fwd-btn.sent{border-color:var(--ink-3);color:var(--ink-3);cursor:default}
+
+/* draft box */
+.draft-box{background:var(--brand-tint);border-top:1px solid var(--line);padding:10px 12px;font-size:15px}
+.draft-box .lbl{font-size:12px;color:var(--brand);font-weight:700;margin-bottom:6px}
+.draft-text{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;white-space:pre-wrap;word-wrap:break-word}
+.draft-actions{display:flex;gap:8px}
+.draft-actions button{flex:1;min-height:40px;border-radius:10px;border:0;font-weight:600;font-size:14px}
+.btn-send{background:var(--brand);color:var(--brand-ink)}
+.btn-send:hover{filter:brightness(1.08)}
+.btn-discard{background:transparent;border:1px solid var(--line)!important;border:1px solid var(--line)}
+.btn-discard:hover{background:var(--bg)}
+
+/* ── Bridge ── */
+.bridge{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px 6px;background:var(--surface);border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.bridge-icon{font-size:20px;color:var(--ink-3)}
+.bridge .tip{font-size:11px;color:var(--ink-3);text-align:center;line-height:1.3;writing-mode:vertical-rl;transform:rotate(180deg)}
+@media(max-width:780px){.bridge .tip{writing-mode:horizontal-tb;transform:none}}
+
+/* ── Composer ── */
+.composer{flex:none;display:flex;gap:6px;align-items:flex-end;padding:8px;border-top:1px solid var(--line);background:var(--surface)}
+.composer .role-toggle{flex:none;display:flex;flex-direction:column;gap:3px}
+.role-btn{border:1px solid var(--line);border-radius:8px;background:transparent;font-size:12px;font-weight:600;padding:4px 8px;min-height:32px;white-space:nowrap;color:var(--ink-2)}
+.role-btn.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.composer textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line);border-radius:16px;padding:8px 12px;font-size:16px;background:var(--bg);max-height:100px;min-height:40px;line-height:1.35}
+.send-btn{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center}
+.send-btn.threat-send{background:var(--threat)}
+.send-btn:hover{filter:brightness(1.1)}
+
+/* agent takeover bar */
+.takeover-bar{flex:none;display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:2px solid var(--brand);background:var(--brand-tint);font-size:14px;color:var(--ink-2)}
+.takeover-bar .sp{flex:1}
+.takeover-bar .stop{border:1px solid var(--line);background:transparent;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:600}
+.takeover-bar strong{color:var(--brand)}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--brand);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@media(prefers-reduced-motion:reduce){.pulse{animation:none}}
+
+/* typing indicator */
+.typing-dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ink-3);margin:0 2px;animation:dot .9s ease-in-out infinite}
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+.toast.show{opacity:1}
+
+/* lang tabs */
+.lang-row{display:flex;gap:4px;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--surface)}
+.lang-row button{border:1px solid var(--line);border-radius:8px;background:transparent;font-size:13px;padding:4px 10px;min-height:30px}
+.lang-row button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+</style>
+</head>
+<body>
+<div class="frame">
+  <header class="topbar">
+    <div class="wordmark"><span class="ring" aria-hidden="true"></span>SafeCircle</div>
+    <span class="tagline">Agent interception demo</span>
+    <span class="sp"></span>
+    <a href="/" style="font-size:13px;color:var(--ink-3);text-decoration:none">← Back to main demo</a>
+    <span class="pill" id="aiPill">…</span>
+    <button onclick="resetAll()" style="font-size:13px;border:0;background:transparent;color:var(--ink-3);text-decoration:underline;cursor:pointer">Reset</button>
+  </header>
+
+  <div class="workspace">
+    <!-- ══════════ COLUMN 1: THREAT CHANNEL ══════════ -->
+    <div class="col" id="threatCol">
+      <div class="col-head">
+        <span class="dot threat"></span>
+        <span class="title">Threat channel</span>
+        <span class="sub">Scammer ↔ User</span>
+        <span class="sp"></span>
+        <span id="threatStatus" style="font-size:12px;color:var(--ink-3)"></span>
+      </div>
+      <div class="lang-row" role="group" aria-label="Language">
+        <button data-lang="en" aria-pressed="true">EN</button>
+        <button data-lang="hi" aria-pressed="false" lang="hi">हिंदी</button>
+        <button data-lang="mr" aria-pressed="false" lang="mr">मराठी</button>
+      </div>
+      <div class="chat" id="threatChat" aria-live="polite"></div>
+      <!-- agent takeover bar (hidden until engaged) -->
+      <div class="takeover-bar" id="takeoverBar" hidden>
+        <span class="pulse"></span>
+        <strong>Agent active</strong>
+        <span>— replying as user</span>
+        <span class="sp"></span>
+        <button class="stop" onclick="stopAgent()">Stop agent</button>
+      </div>
+      <form class="composer" id="threatComposer" autocomplete="off">
+        <div class="role-toggle">
+          <button type="button" class="role-btn active" id="roleScammer" onclick="setRole('scammer')">Scammer</button>
+          <button type="button" class="role-btn" id="roleUser" onclick="setRole('user')">User</button>
+        </div>
+        <label class="sr" for="threatInput">Message</label>
+        <textarea id="threatInput" rows="1" placeholder="Type as scammer or user…"></textarea>
+        <button type="submit" class="send-btn threat-send" aria-label="Send">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6l-.02 6.5L15 12 3.38 13.9z"/></svg>
+        </button>
+      </form>
+    </div>
+
+    <!-- ══════════ BRIDGE ══════════ -->
+    <div class="bridge" role="separator" aria-label="Forward messages between channels">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <span class="tip">Forward to agent</span>
+    </div>
+
+    <!-- ══════════ COLUMN 2: SAFECIRCLE CHANNEL ══════════ -->
+    <div class="col" id="safeCol">
+      <div class="col-head">
+        <span class="dot safe"></span>
+        <span class="title">SafeCircle</span>
+        <span class="sub">User ↔ Agent</span>
+        <span class="sp"></span>
+        <span id="safeStatus" style="font-size:12px;color:var(--ink-3)"></span>
+      </div>
+      <div class="chat" id="safeChat" aria-live="polite"></div>
+      <!-- draft box for suggested reply -->
+      <div id="draftBox" class="draft-box" hidden>
+        <div class="lbl">Suggested reply for threat channel</div>
+        <div id="draftText" class="draft-text"></div>
+        <div class="draft-actions">
+          <button class="btn-send" onclick="approveDraft()">Send in threat channel</button>
+          <button class="btn-discard" onclick="discardDraft()">Discard</button>
+        </div>
+      </div>
+      <form class="composer" id="safeComposer" autocomplete="off">
+        <label class="sr" for="safeInput">Message to SafeCircle agent</label>
+        <textarea id="safeInput" rows="1" placeholder="Ask the agent or forward a message…"></textarea>
+        <button type="submit" class="send-btn" aria-label="Send to agent">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6l-.02 6.5L15 12 3.38 13.9z"/></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const S = {
+  lang: "en",
+  role: "scammer",          // current role in threat channel
+  caseId: null,             // case id from backend
+  threatHistory: [],        // [{role, text}] — threat channel msgs
+  safeHistory: [],          // [{role:"user"|"agent", text}]
+  agentActive: false,       // is agent replying autonomously?
+  agentTimer: null,
+  pendingDraft: null,       // text waiting in draft box
+  aiAvailable: false,
+};
+
+const RISK_GLYPH = {high:"!", medium:"?", low:"i"};
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+const $ = id => document.getElementById(id);
+
+// ── API ────────────────────────────────────────────────────────────────────
+async function api(path, body) {
+  const opts = body === undefined ? {} : {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(body),
+  };
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const el = $("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(()=>el.classList.remove("show"), 2600);
+}
+
+// ── Language ───────────────────────────────────────────────────────────────
+document.querySelectorAll(".lang-row button").forEach(b => b.onclick = () => {
+  S.lang = b.dataset.lang;
+  document.querySelectorAll(".lang-row button").forEach(x=>x.setAttribute("aria-pressed", String(x===b)));
+});
+
+// ── Role toggle ────────────────────────────────────────────────────────────
+function setRole(r) {
+  S.role = r;
+  $("roleScammer").classList.toggle("active", r==="scammer");
+  $("roleUser").classList.toggle("active", r==="user");
+  $("threatInput").placeholder = r==="scammer"
+    ? "Type as scammer…"
+    : "Type as user (in the threat channel)…";
+}
+
+// ── Scroll helper ──────────────────────────────────────────────────────────
+function scrollBot(el) { requestAnimationFrame(()=>{ el.scrollTop = el.scrollHeight; }); }
+
+// ── Bubble builder ─────────────────────────────────────────────────────────
+function addBubble(chatEl, role, text, opts={}) {
+  const wrap = document.createElement("div");
+  wrap.className = "msg-wrap";
+  const lbl = document.createElement("div");
+  const isRight = ["user","sc-user"].includes(role);
+  lbl.className = "label" + (isRight?" r":"");
+  const labelText = {
+    scammer:"Scammer", user:"User", agent:"SafeCircle Agent",
+    "sc-user":"User", "agent-typing":"SafeCircle Agent",
+  }[role] || role;
+  lbl.textContent = labelText;
+  const bubble = document.createElement("div");
+  bubble.className = "msg " + role;
+  if (opts.typing) {
+    bubble.innerHTML = `<span class="typing-dots"><span></span><span></span><span></span></span>`;
+  } else {
+    bubble.textContent = text;
+  }
+  wrap.appendChild(lbl);
+  wrap.appendChild(bubble);
+  if (opts.fwdBtn && role === "scammer") {
+    const fwd = document.createElement("button");
+    fwd.className = "fwd-btn";
+    fwd.textContent = "⤴ Forward to agent";
+    fwd.onclick = () => forwardToAgent(text, fwd);
+    wrap.appendChild(fwd);
+  }
+  chatEl.appendChild(wrap);
+  scrollBot(chatEl);
+  return bubble;
+}
+
+function mkBtn(text, cls, fn) {
+  const b = document.createElement("button");
+  b.textContent = text;
+  if (cls) b.className = cls;
+  b.onclick = fn;
+  return b;
+}
+
+function addVerdictCard(safeChat, result) {
+  const rep = result.reply;
+  const cid = result.case_id;
+  const card = document.createElement("article");
+  card.className = "verdict " + result.risk;
+
+  // Band
+  const band = document.createElement("div"); band.className = "band";
+  const glyph = document.createElement("span"); glyph.className = "glyph";
+  glyph.textContent = RISK_GLYPH[result.risk] || "i";
+  const hed = document.createElement("p"); hed.className = "hed";
+  hed.textContent = rep.headline;
+  band.appendChild(glyph); band.appendChild(hed);
+
+  // Body
+  const body = document.createElement("div"); body.className = "body";
+  if (rep.reasons && rep.reasons.length) {
+    const ul = document.createElement("ul");
+    rep.reasons.slice(0,4).forEach(r => { const li = document.createElement("li"); li.textContent = r; ul.appendChild(li); });
+    body.appendChild(ul);
+  }
+  if (rep.action) { const p = document.createElement("p"); p.className = "act"; p.textContent = rep.action; body.appendChild(p); }
+  const foot = document.createElement("p"); foot.className = "foot"; foot.textContent = rep.footer;
+  body.appendChild(foot);
+
+  // Buttons
+  const btns = document.createElement("div"); btns.className = "btns";
+  if (result.risk !== "low" && S.aiAvailable) btns.appendChild(mkBtn("Agent takes over threat channel", "danger", ()=>engageAgent(cid)));
+  if (S.aiAvailable) btns.appendChild(mkBtn("Suggest a reply to send", "", ()=>getDraft(cid)));
+  btns.appendChild(mkBtn("What should I do?", "", ()=>getAdvice(cid)));
+  btns.appendChild(mkBtn("Ask my family", "", ()=>doAskFamily(cid)));
+  btns.appendChild(mkBtn("Report this", "", ()=>doReport(cid)));
+  body.appendChild(btns);
+
+  card.appendChild(band); card.appendChild(body);
+  safeChat.appendChild(card);
+  scrollBot(safeChat);
+}
+
+// ── Threat channel ─────────────────────────────────────────────────────────
+$("threatComposer").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (S.agentActive) return; // agent has control
+  const text = $("threatInput").value.trim();
+  if (!text) return;
+  $("threatInput").value = "";
+  autosizeTA($("threatInput"));
+  const role = S.role;
+  S.threatHistory.push({role, text});
+  addBubble($("threatChat"), role, text, {fwdBtn: role==="scammer"});
+});
+
+// ── Forward to agent ───────────────────────────────────────────────────────
+async function forwardToAgent(text, btn) {
+  if (btn.classList.contains("sent")) return;
+  btn.classList.add("sent"); btn.textContent = "✓ Forwarded";
+
+  const safeChat = $("safeChat");
+  addBubble(safeChat, "user", `[Forwarded from threat channel]\n${text}`);
+  S.safeHistory.push({role:"user", text});
+
+  const typing = addBubble(safeChat, "agent-typing", "", {typing:true});
+  $("safeStatus").textContent = "Checking…";
+
+  try {
+    const result = await api("/api/check", {text, lang: S.lang});
+    typing.parentNode.remove();
+    $("safeStatus").textContent = "";
+    S.caseId = result.case_id;
+
+    if (result.status === "ok") {
+      addVerdictCard(safeChat, result);
+    } else {
+      addBubble(safeChat, "agent", result.message || "Please paste the message as text.");
+    }
+  } catch (err) {
+    typing.parentNode.remove();
+    $("safeStatus").textContent = "";
+    addBubble(safeChat, "agent", "Something went wrong. Try again.");
+    toast(err.message);
+  }
+}
+
+// ── SafeCircle composer (user can type directly to agent) ──────────────────
+$("safeComposer").addEventListener("submit", async e => {
+  e.preventDefault();
+  const text = $("safeInput").value.trim();
+  if (!text) return;
+  $("safeInput").value = "";
+  autosizeTA($("safeInput"));
+
+  const safeChat = $("safeChat");
+  addBubble(safeChat, "user", text);
+  S.safeHistory.push({role:"user", text});
+
+  const typing = addBubble(safeChat, "agent-typing", "", {typing:true});
+  $("safeStatus").textContent = "Checking…";
+  try {
+    const result = await api("/api/check", {text, lang: S.lang});
+    typing.parentNode.remove();
+    $("safeStatus").textContent = "";
+    S.caseId = result.case_id;
+    if (result.status === "ok") addVerdictCard(safeChat, result);
+    else addBubble(safeChat, "agent", result.message || "Paste the suspicious message.");
+  } catch (err) {
+    typing.parentNode.remove();
+    $("safeStatus").textContent = "";
+    addBubble(safeChat, "agent", "Something went wrong.");
+  }
+});
+
+// ── Advice ─────────────────────────────────────────────────────────────────
+async function getAdvice(caseId) {
+  try {
+    const r = await api(`/api/cases/${caseId}/advice?lang=${S.lang}`);
+    if (r.steps) {
+      const safeChat = $("safeChat");
+      const el = document.createElement("ol");
+      el.className = "steps";
+      r.steps.forEach(s => { const li = document.createElement("li"); li.textContent = s; el.appendChild(li); });
+      const wrap = document.createElement("div"); wrap.className = "msg agent";
+      wrap.appendChild(el);
+      const lbl = document.createElement("div"); lbl.className = "label"; lbl.textContent = "SafeCircle Agent";
+      const w2 = document.createElement("div"); w2.className = "msg-wrap";
+      w2.appendChild(lbl); w2.appendChild(wrap);
+      safeChat.appendChild(w2); scrollBot(safeChat);
+    }
+  } catch (err) { toast(err.message); }
+}
+
+async function doAskFamily(caseId) {
+  try {
+    const r = await api(`/api/cases/${caseId}/ask-family`, {lang: S.lang});
+    addBubble($("safeChat"), "agent", r.message || "Family notified.");
+  } catch (err) { toast(err.message); }
+}
+
+async function doReport(caseId) {
+  try {
+    const r = await api(`/api/cases/${caseId}/report`, {lang: S.lang});
+    addBubble($("safeChat"), "agent", r.message || "Reported.");
+  } catch (err) { toast(err.message); }
+}
+
+// ── Reply Assistant (suggest a draft) ─────────────────────────────────────
+async function getDraft(caseId) {
+  if (!S.aiAvailable) { toast("AI checking must be on for reply drafts."); return; }
+  $("safeStatus").textContent = "Drafting reply…";
+  try {
+    const r = await api("/api/agent/draft", {
+      case_id: caseId,
+      history: S.threatHistory.slice(-8),
+      lang: S.lang,
+    });
+    $("safeStatus").textContent = "";
+    if (r.draft) showDraft(r.draft);
+    else toast("No draft available.");
+  } catch (err) {
+    $("safeStatus").textContent = "";
+    toast("Draft failed: " + err.message);
+  }
+}
+
+function showDraft(text) {
+  S.pendingDraft = text;
+  $("draftText").textContent = text;
+  $("draftBox").hidden = false;
+  scrollBot($("safeChat"));
+}
+
+function approveDraft() {
+  if (!S.pendingDraft) return;
+  const text = S.pendingDraft;
+  discardDraft();
+  S.threatHistory.push({role:"user", text});
+  addBubble($("threatChat"), "sc-user", text);
+  addBubble($("safeChat"), "agent", "Sent in the threat channel ✓");
+}
+
+function discardDraft() {
+  S.pendingDraft = null;
+  $("draftBox").hidden = true;
+}
+
+// ── Agent takes over ───────────────────────────────────────────────────────
+async function engageAgent(caseId) {
+  if (!S.aiAvailable) { toast("Enable AI checking to use agent takeover."); return; }
+  S.caseId = caseId;
+  S.agentActive = true;
+  $("takeoverBar").hidden = false;
+  $("threatComposer").hidden = true;
+  addBubble($("safeChat"), "agent",
+    "Agent is now replying in the threat channel. The scammer will receive replies from me. Tap "Stop agent" to take back control.");
+  scheduleAgentReply();
+}
+
+function scheduleAgentReply() {
+  if (!S.agentActive) return;
+  // only reply if the last message in threat history is from scammer
+  const last = S.threatHistory[S.threatHistory.length - 1];
+  if (last && last.role === "scammer") {
+    agentReplyNow();
+  } else {
+    // wait for next scammer message; poll every 200ms
+    S.agentTimer = setTimeout(scheduleAgentReply, 200);
+  }
+}
+
+async function agentReplyNow() {
+  if (!S.agentActive) return;
+  const chat = $("threatChat");
+  const typing = addBubble(chat, "agent", "", {typing:true});
+  try {
+    const r = await api("/api/agent/engage", {
+      case_id: S.caseId,
+      history: S.threatHistory.slice(-12),
+      lang: S.lang,
+    });
+    typing.parentNode.remove();
+    if (r.reply) {
+      S.threatHistory.push({role:"agent", text: r.reply});
+      addBubble(chat, "agent", r.reply);
+      addBubble($("safeChat"), "agent", `[Replied in threat channel]: ${r.reply}`);
+    }
+  } catch (err) {
+    typing.parentNode.remove();
+    addBubble(chat, "agent", "[Agent couldn't reply. Stop agent and reply manually.]");
+    stopAgent();
+  }
+  if (S.agentActive) {
+    S.agentTimer = setTimeout(scheduleAgentReply, 200);
+  }
+}
+
+// When a scammer message arrives while agent is active, trigger a reply
+const origThreat = $("threatComposer").onsubmit;
+$("threatComposer").addEventListener("submit", () => {
+  if (S.agentActive) scheduleAgentReply();
+}, true);
+
+function stopAgent() {
+  S.agentActive = false;
+  clearTimeout(S.agentTimer);
+  $("takeoverBar").hidden = true;
+  $("threatComposer").hidden = false;
+  addBubble($("safeChat"), "agent", "Agent stopped. You have control of the threat channel again.");
+}
+
+// ── Textarea auto-height ───────────────────────────────────────────────────
+function autosizeTA(ta) {
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight, 100) + "px";
+}
+["threatInput","safeInput"].forEach(id => {
+  const ta = $(id);
+  ta.addEventListener("input", () => autosizeTA(ta));
+  ta.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      ta.closest("form").requestSubmit();
+    }
+  });
+});
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+async function resetAll() {
+  stopAgent();
+  await api("/api/reset", {}).catch(()=>{});
+  $("threatChat").innerHTML = "";
+  $("safeChat").innerHTML = "";
+  discardDraft();
+  S.threatHistory = []; S.safeHistory = []; S.caseId = null;
+  $("threatStatus").textContent = "";
+  $("safeStatus").textContent = "";
+  boot();
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+const SAMPLES = [
+  {label:"New number, needs money", lang:"en", role:"scammer",
+   text:"Hi Papa, this is Rahul. My phone fell in water, this is my new number. I need ₹25,000 urgently for a hospital deposit, please send to rahul.k22@ybl. Don't tell mummy, I'll explain later."},
+  {label:"Police – digital arrest", lang:"hi", role:"scammer",
+   text:"मैं मुंबई पुलिस साइबर क्राइम ब्रांच से बोल रहा हूँ। आपके नाम के एक पार्सल में ड्रग्स मिले हैं। वीडियो कॉल पर रहें, किसी को मत बताना।"},
+  {label:"SBI KYC link", lang:"en", role:"scammer",
+   text:"Dear Customer, your SBI account will be blocked today. Update KYC immediately: http://sbi-kyc-update.xyz/login"},
+  {label:"User doubts the message", lang:"en", role:"user",
+   text:"This looks suspicious, I'm not sure. What should I do?"},
+];
+
+async function boot() {
+  try {
+    const s = await api("/api/status");
+    S.aiAvailable = s.ai;
+    const p = $("aiPill");
+    p.textContent = s.ai ? "AI on" : "Rules only";
+    p.className = "pill" + (s.ai ? " on" : "");
+    if (!s.ai) {
+      addBubble($("safeChat"), "agent",
+        "AI checking is off (no API key). Paste messages to check them with rules. Add ANTHROPIC_API_KEY in .env to enable draft replies and agent takeover.");
+    } else {
+      addBubble($("safeChat"), "agent",
+        "Ready. Type as the scammer in the threat channel, then tap ⤴ to forward it here. Or type a message directly below.");
+    }
+  } catch {
+    addBubble($("safeChat"), "agent", "Server not reachable. Start it with: python server.py");
+  }
+
+  // quick-load sample chips
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line)";
+  SAMPLES.forEach(s => {
+    const b = document.createElement("button");
+    b.textContent = s.label;
+    b.style.cssText = "border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13px;background:var(--surface);cursor:pointer";
+    b.onclick = () => {
+      // set language
+      S.lang = s.lang;
+      document.querySelectorAll(".lang-row button").forEach(lb=>lb.setAttribute("aria-pressed",String(lb.dataset.lang===s.lang)));
+      // set role and fill input
+      setRole(s.role);
+      $("threatInput").value = s.text;
+      autosizeTA($("threatInput"));
+      $("threatInput").focus();
+    };
+    row.appendChild(b);
+  });
+  $("threatCol").insertBefore(row, $("threatCol").querySelector(".chat"));
+}
+
+boot();
+</script>
+</body>
+</html>

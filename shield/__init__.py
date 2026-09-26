@@ -1,0 +1,1 @@
+"""SafeCircle detection core."""

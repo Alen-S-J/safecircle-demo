@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SafeCircle · local demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1C2541; --ink-2: #4A5470; --ink-3: #7B849A;
+  --paper: #EEF1EC; --surface: #FFFFFF; --line: #D8DDD6;
+  --brand: #0F6B6F; --brand-ink: #FFFFFF; --brand-tint: #DCEDEC;
+  --high: #B42F1B; --high-tint: #FBE6E1; --high-ink: #6E1A0E;
+  --mid: #C98A0B; --mid-tint: #FCF0D4; --mid-ink: #6A4700;
+  --low: #2E7A4A; --low-tint: #E1F0E5; --low-ink: #1A4A2C;
+  --bubble-me: #D6EFE3; --chat-bg: #F6F4EE;
+  --font: "Mukta", "Noto Sans Devanagari", "Nirmala UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #E7EAF2; --ink-2: #B5BCCD; --ink-3: #8790A6;
+    --paper: #141821; --surface: #1D2230; --line: #2E3547;
+    --brand: #3BA7A8; --brand-ink: #0B1B1C; --brand-tint: #16393A;
+    --high: #F07B63; --high-tint: #3A1C17; --high-ink: #FFD4CA;
+    --mid: #F0B94A; --mid-tint: #35290F; --mid-ink: #FBE4B0;
+    --low: #6BC08A; --low-tint: #16301F; --low-ink: #C8EDD4;
+    --bubble-me: #1F3D33; --chat-bg: #171B25;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--font); color: var(--ink); background: var(--paper); line-height: 1.45; -webkit-font-smoothing: antialiased; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ---------- page frame ---------- */
+.topbar { display: flex; align-items: center; gap: 16px; padding: 14px 28px; padding-top: calc(14px + env(safe-area-inset-top, 0px)); border-bottom: 1px solid var(--line); }
+.wordmark { font-weight: 700; font-size: 22px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+.wordmark .ring { width: 22px; height: 22px; border-radius: 50%; border: 4px solid var(--brand); position: relative; }
+.wordmark .ring::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--brand); }
+.topbar .tag { font-size: 14px; color: var(--ink-3); }
+.topbar .spacer { flex: 1; }
+.pill { font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+.pill.on { border-color: var(--brand); color: var(--brand); }
+.linkbtn { background: none; border: 0; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; font-size: 14px; padding: 4px; }
+
+.views { display: none; }
+.stage { display: grid; grid-template-columns: minmax(340px, 420px) 1fr; gap: 40px; padding: 28px; max-width: 1280px; margin: 0 auto; align-items: start; }
+.phone-col, .dash-col { min-width: 0; }
+.col-label { font-size: 14px; color: var(--ink-3); margin: 0 0 10px 4px; }
+
+/* ---------- elder phone ---------- */
+.phone { background: var(--surface); border: 1px solid var(--line); border-radius: 34px; padding: 10px; height: min(820px, calc(100vh - 150px)); min-height: 560px; display: flex; flex-direction: column; }
+.screen { flex: 1; min-height: 0; border-radius: 26px; overflow: hidden; display: flex; flex-direction: column; background: var(--chat-bg); position: relative; }
+.chat-head { background: var(--brand); color: var(--brand-ink); padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--brand-ink); color: var(--brand); display: grid; place-items: center; font-weight: 700; font-size: 17px; flex: none; }
+.chat-head .who { flex: 1; min-width: 0; }
+.chat-head .who b { display: block; font-size: 18px; line-height: 1.2; }
+.chat-head .who span { font-size: 14px; opacity: .85; }
+.iconbtn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: transparent; color: inherit; display: grid; place-items: center; font-size: 22px; flex: none; }
+.iconbtn:hover { background: rgba(127,127,127,.15); }
+.langs { display: flex; gap: 6px; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.langs button { flex: 1; border: 1px solid var(--line); background: transparent; border-radius: 10px; padding: 6px 4px; font-size: 16px; min-height: 40px; }
+.langs button[aria-pressed="true"] { background: var(--brand-tint); border-color: var(--brand); color: var(--ink); font-weight: 600; }
+
+.settings { background: var(--surface); border-bottom: 1px solid var(--line); padding: 14px 16px 16px; font-size: 17px; }
+.settings[hidden] { display: none; }
+.settings h3 { margin: 0 0 8px; font-size: 18px; }
+.settings label.opt { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; }
+.settings label.opt input { width: 22px; height: 22px; margin-top: 3px; accent-color: var(--brand); flex: none; }
+.settings label.opt small { display: block; color: var(--ink-2); font-size: 15px; }
+.settings .row { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+.settings input[type=text] { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--paper); min-height: 44px; }
+.btn { border: 0; border-radius: 12px; background: var(--brand); color: var(--brand-ink); padding: 10px 16px; font-weight: 600; min-height: 44px; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+
+.chat > * { flex-shrink: 0; }
+.chat { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px 8px; display: flex; flex-direction: column; gap: 10px; font-size: 18px; overscroll-behavior: contain; }
+.msg { max-width: 88%; padding: 9px 13px; border-radius: 14px; background: var(--surface); box-shadow: 0 1px 0 rgba(0,0,0,.06); white-space: pre-wrap; word-wrap: break-word; }
+.msg.me { align-self: flex-end; background: var(--bubble-me); border-bottom-right-radius: 4px; }
+.msg.bot { align-self: flex-start; border-bottom-left-radius: 4px; }
+.msg img { display: block; max-width: 100%; max-height: 260px; border-radius: 8px; }
+.msg.typing { color: var(--ink-3); font-style: italic; }
+
+.verdict { align-self: stretch; max-width: 100%; background: var(--surface); border-radius: 16px; overflow: hidden; box-shadow: 0 1px 0 rgba(0,0,0,.06); animation: arrive .28s ease-out; }
+@keyframes arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .verdict { animation: none; } }
+.verdict .band { display: flex; gap: 12px; align-items: flex-start; padding: 14px 14px 12px; }
+.verdict .glyph { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 24px; font-weight: 700; line-height: 1; }
+.verdict .headline { flex: 1; font-size: 23px; font-weight: 700; line-height: 1.2; margin: 2px 0 0; }
+.verdict.high .band { background: var(--high-tint); color: var(--high-ink); }
+.verdict.high .glyph { background: var(--high); color: #fff; }
+.verdict.medium .band { background: var(--mid-tint); color: var(--mid-ink); }
+.verdict.medium .glyph { background: var(--mid); color: #2A1C00; }
+.verdict.low .band { background: var(--low-tint); color: var(--low-ink); }
+.verdict.low .glyph { background: var(--low); color: #fff; }
+.verdict .speak { width: 44px; height: 44px; flex: none; border: 1px solid currentColor; border-radius: 50%; background: transparent; color: inherit; display: grid; place-items: center; }
+.verdict .speak svg { width: 20px; height: 20px; }
+.verdict .body { padding: 12px 16px 4px; }
+.verdict ul { margin: 0 0 10px; padding: 0 0 0 20px; }
+.verdict li { margin: 3px 0; }
+.verdict .action { font-weight: 600; margin: 0 0 10px; }
+.verdict .footer { color: var(--ink-2); font-size: 15px; margin: 0 0 12px; }
+.verdict .meta { font-size: 13px; color: var(--ink-3); margin: 0 0 10px; }
+.verdict .actions { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.verdict .actions button { border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--brand); font-weight: 600; font-size: 18px; min-height: 52px; padding: 8px; }
+.verdict .actions button:first-child { border-top: 0; }
+.verdict .actions button:hover { background: var(--brand-tint); }
+.verdict .actions button:disabled { color: var(--ink-3); cursor: default; background: transparent; }
+.steps { margin: 0; padding-left: 22px; }
+.steps li { margin: 6px 0; }
+
+.examples { padding: 6px 12px 4px; background: var(--chat-bg); }
+.examples p { margin: 0 0 6px; font-size: 14px; color: var(--ink-3); }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.chips button { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-size: 15px; min-height: 38px; white-space: nowrap; }
+.chips button:hover { border-color: var(--brand); }
+
+.composer { display: flex; gap: 6px; align-items: flex-end; padding: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--line); }
+.composer textarea { flex: 1; min-width: 0; resize: none; border: 1px solid var(--line); border-radius: 22px; padding: 10px 14px; background: var(--paper); font-size: 18px; max-height: 140px; min-height: 46px; line-height: 1.35; }
+.composer .iconbtn { color: var(--ink-2); width: 46px; height: 46px; }
+.composer .iconbtn svg { width: 24px; height: 24px; }
+.composer .send { background: var(--brand); color: var(--brand-ink); }
+.composer .send:hover { background: var(--brand); filter: brightness(1.08); }
+.composer .mic.listening { background: var(--high); color: #fff; }
+
+/* ---------- guardian ---------- */
+.dash { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 28px 32px 32px; min-height: 560px; }
+.dash h2 { font-size: 30px; line-height: 1.15; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.01em; }
+.dash .sub { color: var(--ink-2); margin: 0 0 20px; font-size: 16px; }
+.dash .week { font-size: 20px; line-height: 1.5; max-width: 62ch; margin: 0 0 28px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+.dash .week strong { font-weight: 700; }
+.dash h3 { font-size: 17px; margin: 0 0 10px; font-weight: 700; }
+.dash section + section { margin-top: 30px; }
+.empty { color: var(--ink-2); padding: 14px 0; margin: 0; }
+
+.alert { border-left: 4px solid var(--high); border-radius: 0; background: var(--high-tint); padding: 14px 16px; margin-bottom: 10px; }
+.alert.asked { border-left-color: var(--brand); background: var(--brand-tint); }
+.alert .why { font-weight: 700; font-size: 17px; margin: 0 0 2px; }
+.alert .what { margin: 0 0 8px; color: var(--ink); }
+.alert .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.alert .btn { font-size: 15px; padding: 8px 14px; min-height: 40px; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; padding: 0; list-style: none; }
+.tags li { font-size: 14px; padding: 2px 10px; border-radius: 6px; background: var(--paper); color: var(--ink-2); }
+
+.cases { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.cases > li { border-bottom: 1px solid var(--line); }
+.cases details summary { list-style: none; display: grid; grid-template-columns: 96px 1fr auto; gap: 12px; align-items: center; padding: 12px 4px; cursor: pointer; }
+.cases details summary::-webkit-details-marker { display: none; }
+.cases details summary:hover { background: var(--paper); }
+.risk { font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.risk::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: currentColor; }
+.risk.high { color: var(--high); } .risk.medium { color: var(--mid); } .risk.low { color: var(--low); }
+.cases .cat { font-weight: 600; }
+.cases .flags { font-size: 13px; color: var(--ink-3); margin-left: 8px; font-weight: 400; }
+.cases time { color: var(--ink-3); font-size: 14px; white-space: nowrap; }
+.detail { padding: 0 4px 16px 112px; font-size: 15px; }
+.detail dl { display: grid; grid-template-columns: 110px 1fr; gap: 4px 12px; margin: 0; }
+.detail dt { color: var(--ink-3); }
+.detail dd { margin: 0; }
+.detail blockquote { margin: 4px 0 0; padding: 8px 12px; background: var(--paper); border-radius: 8px; white-space: pre-wrap; }
+.privacy { margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-2); font-size: 15px; max-width: 70ch; }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 12px; font-size: 15px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; max-width: 90vw; }
+.toast.show { opacity: 1; }
+
+@media (max-width: 900px) {
+  .topbar { padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
+  .wordmark { font-size: 19px; }
+  .pill { font-size: 12px; padding: 2px 8px; }
+  .linkbtn { font-size: 13px; }
+  .topbar .tag { display: none; }
+  .views { display: flex; gap: 6px; width: 100%; }
+  .views button { flex: 1; border: 1px solid var(--line); background: transparent; border-radius: 10px; padding: 8px; min-height: 44px; font-weight: 600; }
+  .views button[aria-selected="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .stage { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
+  .stage[data-view="elder"] .dash-col, .stage[data-view="family"] .phone-col { display: none; }
+  .col-label { display: none; }
+  .phone { height: calc(100dvh - 140px); min-height: 480px; border-radius: 24px; padding: 6px; }
+  .screen { border-radius: 20px; }
+  .dash { padding: 20px 18px; }
+  .dash h2 { font-size: 25px; }
+  .dash .week { font-size: 18px; }
+  .cases details summary { grid-template-columns: 1fr auto; }
+  .cases details summary .risk { grid-column: 1 / -1; }
+  .detail { padding-left: 4px; }
+  .detail dl { grid-template-columns: 1fr; }
+  .toast { bottom: auto; top: calc(12px + env(safe-area-inset-top, 0px)); }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wordmark"><span class="ring" aria-hidden="true"></span>SafeCircle</div>
+  <span class="tag">Local demo of the scam-check companion</span>
+  <span class="spacer"></span>
+  <span class="pill" id="aiPill">Checking…</span>
+  <button class="linkbtn" id="resetBtn">Reset demo</button>
+  <div class="views" role="tablist" aria-label="Choose view">
+    <button role="tab" aria-selected="true" data-view="elder" id="tabElder">Asha's phone</button>
+    <button role="tab" aria-selected="false" data-view="family" id="tabFamily">Family view</button>
+  </div>
+</header>
+
+<main class="stage" id="stage" data-view="elder">
+  <!-- ================= ELDER ================= -->
+  <div class="phone-col">
+    <p class="col-label" id="phoneLabel">Asha's phone</p>
+    <div class="phone">
+      <div class="screen">
+        <div class="chat-head">
+          <div class="avatar" aria-hidden="true">SC</div>
+          <div class="who"><b>SafeCircle</b><span data-i18n="subtitle">Send anything that worries you</span></div>
+          <button class="iconbtn" id="settingsBtn" aria-expanded="false" aria-controls="settings" data-i18n-label="settings" aria-label="Settings">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+          </button>
+        </div>
+        <div class="langs" role="group" aria-label="Language">
+          <button data-lang="en" aria-pressed="true">English</button>
+          <button data-lang="hi" aria-pressed="false" lang="hi">हिंदी</button>
+          <button data-lang="mr" aria-pressed="false" lang="mr">मराठी</button>
+        </div>
+
+        <div class="settings" id="settings" hidden>
+          <h3 data-i18n="shareTitle">Who can see my checks</h3>
+          <label class="opt"><input type="radio" name="share" value="ask_only"><span><span data-i18n="shareAsk">Only when I ask my family</span><small data-i18n="shareAskHelp">Nothing is shared unless you tap "Ask my family".</small></span></label>
+          <label class="opt"><input type="radio" name="share" value="auto_red"><span><span data-i18n="shareRed">Tell my family about serious warnings</span><small data-i18n="shareRedHelp">They get a short summary, not your message.</small></span></label>
+          <label class="opt"><input type="radio" name="share" value="full"><span><span data-i18n="shareFull">My family can see everything I check</span><small data-i18n="shareFullHelp">Includes the message text.</small></span></label>
+          <div class="row">
+            <label class="sr" for="guardianName">Family member's name</label>
+            <input type="text" id="guardianName" data-i18n-ph="guardianPh" placeholder="Family member's name">
+            <button class="btn" id="saveSettings" data-i18n="save">Save</button>
+          </div>
+          <label class="opt" style="margin-top:6px"><input type="checkbox" id="autoSpeak"><span data-i18n="autoSpeak">Read replies aloud</span></label>
+        </div>
+
+        <div class="chat" id="chat" aria-live="polite"></div>
+
+        <div class="examples">
+          <p data-i18n="tryExample">Try an example</p>
+          <div class="chips" id="chips"></div>
+        </div>
+
+        <form class="composer" id="composer" autocomplete="off">
+          <input type="file" id="fileInput" accept="image/*" hidden>
+          <button type="button" class="iconbtn" id="attachBtn" data-i18n-label="attach" aria-label="Send a screenshot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>
+          </button>
+          <label class="sr" for="input" data-i18n="placeholder">Paste or type the message</label>
+          <textarea id="input" rows="1" data-i18n-ph="placeholder" placeholder="Paste or type the message"></textarea>
+          <button type="button" class="iconbtn mic" id="micBtn" data-i18n-label="speak" aria-label="Speak the message">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+          </button>
+          <button type="submit" class="iconbtn send" data-i18n-label="send" aria-label="Check this">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6l-.02 6.5L15 12 3.38 13.9z"/></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= FAMILY ================= -->
+  <div class="dash-col">
+    <p class="col-label">Rohan's family view</p>
+    <div class="dash" id="dash">
+      <h2 id="dashTitle">Asha's protection</h2>
+      <p class="sub" id="dashSub"></p>
+      <p class="week" id="week"></p>
+      <section>
+        <h3>Needs your attention</h3>
+        <div id="alerts"></div>
+      </section>
+      <section>
+        <h3>Checks you can see</h3>
+        <ul class="cases" id="cases"></ul>
+      </section>
+      <p class="privacy" id="privacy"></p>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const T = {
+  en: {
+    subtitle: "Send anything that worries you", settings: "Settings", shareTitle: "Who can see my checks",
+    shareAsk: "Only when I ask my family", shareAskHelp: "Nothing is shared unless you tap \u201cAsk my family\u201d.",
+    shareRed: "Tell my family about serious warnings", shareRedHelp: "They get a short summary, not your message.",
+    shareFull: "My family can see everything I check", shareFullHelp: "Includes the message text.",
+    guardianPh: "Family member's name", save: "Save", saved: "Saved", autoSpeak: "Read replies aloud",
+    tryExample: "Try an example", attach: "Send a screenshot", placeholder: "Paste or type the message",
+    speak: "Speak the message", send: "Check this", listen: "Listen", checking: "Checking, one moment\u2026",
+    welcome: "Namaste {name} ji \ud83d\ude4f\nForward me any message, link or screenshot that worries you. I'll tell you whether to be careful before you reply, click or pay.",
+    screenshot: "Screenshot", sentToFamily: "Family told", error: "Something went wrong. Please try again.",
+    micUnsupported: "Voice typing works in Chrome. Please type instead.", aiNote: "Checked with AI", review: "A person will also review this"
+  },
+  hi: {
+    subtitle: "जो भी चिंता में डाले, भेजें", settings: "सेटिंग्स", shareTitle: "मेरी जाँच कौन देख सकता है",
+    shareAsk: "सिर्फ़ जब मैं परिवार से पूछूँ", shareAskHelp: "\u201cपरिवार से पूछें\u201d दबाए बिना कुछ साझा नहीं होगा।",
+    shareRed: "गंभीर चेतावनी पर परिवार को बताएं", shareRedHelp: "उन्हें सिर्फ़ छोटा सार मिलेगा, आपका मैसेज नहीं।",
+    shareFull: "परिवार मेरी हर जाँच देख सकता है", shareFullHelp: "इसमें मैसेज भी दिखेगा।",
+    guardianPh: "परिवार के सदस्य का नाम", save: "सेव करें", saved: "सेव हो गया", autoSpeak: "जवाब बोलकर सुनाएं",
+    tryExample: "उदाहरण आज़माएं", attach: "स्क्रीनशॉट भेजें", placeholder: "मैसेज पेस्ट या टाइप करें",
+    speak: "बोलकर लिखें", send: "जाँचें", listen: "सुनें", checking: "जाँच रहे हैं, एक पल\u2026",
+    welcome: "नमस्ते {name} जी \ud83d\ude4f\nजो भी मैसेज, लिंक या स्क्रीनशॉट आपको चिंता में डाले, मुझे भेजें। जवाब देने, क्लिक करने या पैसे भेजने से पहले मैं बताऊँगा कि सावधान रहना है या नहीं।",
+    screenshot: "स्क्रीनशॉट", sentToFamily: "परिवार को बताया", error: "कुछ गड़बड़ हुई। फिर से कोशिश करें।",
+    micUnsupported: "बोलकर लिखना Chrome में चलता है। कृपया टाइप करें।", aiNote: "AI से जाँचा गया", review: "एक व्यक्ति भी इसे देखेगा"
+  },
+  mr: {
+    subtitle: "काळजी वाटेल ते पाठवा", settings: "सेटिंग्ज", shareTitle: "माझ्या तपासण्या कोण पाहू शकते",
+    shareAsk: "फक्त मी कुटुंबाला विचारल्यावर", shareAskHelp: "\u201cकुटुंबाला विचारा\u201d दाबल्याशिवाय काहीही शेअर होणार नाही.",
+    shareRed: "गंभीर इशाऱ्यांबद्दल कुटुंबाला कळवा", shareRedHelp: "त्यांना फक्त छोटा सारांश मिळेल, तुमचा मेसेज नाही.",
+    shareFull: "कुटुंब माझी प्रत्येक तपासणी पाहू शकते", shareFullHelp: "यात मेसेजही दिसेल.",
+    guardianPh: "कुटुंबातील व्यक्तीचे नाव", save: "सेव्ह करा", saved: "सेव्ह झाले", autoSpeak: "उत्तरे मोठ्याने वाचा",
+    tryExample: "उदाहरण वापरून पाहा", attach: "स्क्रीनशॉट पाठवा", placeholder: "मेसेज पेस्ट किंवा टाइप करा",
+    speak: "बोलून लिहा", send: "तपासा", listen: "ऐका", checking: "तपासत आहे, एक क्षण\u2026",
+    welcome: "नमस्कार {name} जी \ud83d\ude4f\nकाळजी वाटणारा कोणताही मेसेज, लिंक किंवा स्क्रीनशॉट मला पाठवा. उत्तर देण्यापूर्वी, क्लिक करण्यापूर्वी किंवा पैसे पाठवण्यापूर्वी सावध राहायचे का ते मी सांगेन.",
+    screenshot: "स्क्रीनशॉट", sentToFamily: "कुटुंबाला कळवले", error: "काहीतरी चुकले. पुन्हा प्रयत्न करा.",
+    micUnsupported: "बोलून लिहिणे Chrome मध्ये चालते. कृपया टाइप करा.", aiNote: "AI ने तपासले", review: "एक व्यक्तीही हे पाहील"
+  }
+};
+const SPEECH_LANG = { en: "en-IN", hi: "hi-IN", mr: "mr-IN" };
+const GLYPH = { high: "!", medium: "?", low: "i" };
+const RISK_WORD = { high: "Serious", medium: "Caution", low: "No signs" };
+const SHARE_TEXT = {
+  ask_only: "only the checks she sends you",
+  auto_red: "serious warnings and the checks she sends you, as summaries",
+  full: "every check, including message text"
+};
+
+const state = { lang: "en", settings: {}, samples: [], ai: false, autoSpeak: false, lastSeenAlert: 0 };
+const $ = (s, el = document) => el.querySelector(s);
+const chat = $("#chat");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const t = k => (T[state.lang] && T[state.lang][k]) || T.en[k] || k;
+
+async function api(path, body) {
+  const opts = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || t("error"));
+  return data;
+}
+
+function toast(msg) {
+  const el = $("#toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+/* ---------------- speech ---------------- */
+function pickVoice(lang) {
+  const voices = speechSynthesis.getVoices();
+  const code = SPEECH_LANG[lang];
+  return voices.find(v => v.lang === code) || voices.find(v => v.lang.startsWith(lang)) ||
+         (lang === "mr" ? voices.find(v => v.lang.startsWith("hi")) : null) || null;
+}
+function speak(text, lang) {
+  if (!("speechSynthesis" in window)) return toast("Voice isn't available in this browser.");
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = SPEECH_LANG[lang]; u.rate = 0.9;
+  const v = pickVoice(lang); if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => {};
+
+/* ---------------- i18n ---------------- */
+function applyLang() {
+  document.documentElement.lang = state.lang;
+  document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
+  document.querySelectorAll("[data-i18n-label]").forEach(el => el.setAttribute("aria-label", t(el.dataset.i18nLabel)));
+  document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === state.lang)));
+  renderChips();
+}
+
+/* ---------------- chat rendering ---------------- */
+function addBubble(html, who = "bot", extraClass = "") {
+  const div = document.createElement("div");
+  div.className = `msg ${who} ${extraClass}`.trim();
+  div.innerHTML = html;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function welcome() {
+  chat.innerHTML = "";
+  addBubble(esc(t("welcome").replace("{name}", state.settings.elder_name || "")));
+}
+
+const speakerIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+
+function renderVerdict(r, lang) {
+  const rep = r.reply;
+  const card = document.createElement("article");
+  card.className = `verdict ${r.risk}`;
+  card.setAttribute("lang", lang);
+  const meta = [r.ai_used ? T[lang].aiNote : "", r.needs_review ? T[lang].review : ""].filter(Boolean).join(" \u00b7 ");
+  card.innerHTML = `
+    <div class="band">
+      <span class="glyph" aria-hidden="true">${GLYPH[r.risk]}</span>
+      <p class="headline">${esc(rep.headline)}</p>
+      <button class="speak" aria-label="${esc(T[lang].listen)}">${speakerIcon}</button>
+    </div>
+    <div class="body">
+      ${rep.reasons.length ? `<ul>${rep.reasons.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      ${rep.action ? `<p class="action">${esc(rep.action)}</p>` : ""}
+      <p class="footer">${esc(rep.footer)}</p>
+      ${meta ? `<p class="meta">${esc(meta)}</p>` : ""}
+    </div>
+    <div class="actions">${rep.buttons.map(b => `<button data-act="${b.id}">${esc(b.label)}</button>`).join("")}</div>`;
+  card.querySelector(".speak").onclick = () => speak(rep.speech, lang);
+  card.querySelectorAll("[data-act]").forEach(btn => btn.onclick = () => onAction(btn, r.case_id, lang));
+  chat.appendChild(card);
+  chat.scrollTop = chat.scrollHeight;
+  if (state.autoSpeak) speak(rep.speech, lang);
+}
+
+async function onAction(btn, caseId, lang) {
+  const act = btn.dataset.act;
+  if (act === "advice") {
+    const r = await api(`/api/cases/${caseId}/advice?lang=${lang}`);
+    const b = addBubble(`<ol class="steps">${r.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>`);
+    b.lang = lang;
+    if (state.autoSpeak) speak(r.steps.join(". "), lang);
+    return;
+  }
+  btn.disabled = true;
+  try {
+    const r = await api(`/api/cases/${caseId}/${act === "ask_family" ? "ask-family" : "report"}`, { lang });
+    addBubble(esc(r.message)).lang = lang;
+    if (state.autoSpeak) speak(r.message, lang);
+    if (act === "ask_family") refreshDash();
+  } catch (e) { btn.disabled = false; toast(e.message); }
+}
+
+async function submitCheck({ text = "", image = null }) {
+  if (!text.trim() && !image) return;
+  const lang = state.lang;
+  if (image) addBubble(`<img src="${image}" alt="${esc(t("screenshot"))}">${text ? "<br>" + esc(text) : ""}`, "me");
+  else addBubble(esc(text), "me");
+  const typing = addBubble(esc(t("checking")), "bot", "typing");
+  try {
+    const r = await api("/api/check", { text, image, lang });
+    typing.remove();
+    if (r.status !== "ok") { addBubble(esc(r.message)); return; }
+    renderVerdict(r, lang);
+    refreshDash();
+  } catch (e) {
+    typing.remove();
+    addBubble(esc(e.message || t("error")));
+  }
+}
+
+/* ---------------- composer ---------------- */
+const input = $("#input");
+input.addEventListener("input", () => { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 140) + "px"; });
+input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#composer").requestSubmit(); } });
+$("#composer").addEventListener("submit", e => {
+  e.preventDefault();
+  const text = input.value; input.value = ""; input.style.height = "auto";
+  submitCheck({ text });
+});
+
+function shrinkImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => reject(new Error("That image couldn't be opened. Try a PNG or JPEG."));
+    img.src = url;
+  });
+}
+$("#attachBtn").onclick = () => $("#fileInput").click();
+$("#fileInput").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  try { const image = await shrinkImage(f); const text = input.value; input.value = ""; submitCheck({ text, image }); }
+  catch (err) { toast(err.message); }
+};
+input.addEventListener("paste", async e => {
+  const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
+  if (!item) return;
+  e.preventDefault();
+  try { submitCheck({ image: await shrinkImage(item.getAsFile()) }); } catch (err) { toast(err.message); }
+});
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+$("#micBtn").onclick = () => {
+  if (!SR) return toast(t("micUnsupported"));
+  if (rec) { rec.stop(); return; }
+  rec = new SR(); rec.lang = SPEECH_LANG[state.lang]; rec.interimResults = true;
+  const base = input.value ? input.value + " " : "";
+  rec.onresult = ev => { input.value = base + [...ev.results].map(r => r[0].transcript).join(""); input.dispatchEvent(new Event("input")); };
+  rec.onend = () => { $("#micBtn").classList.remove("listening"); rec = null; };
+  rec.onerror = ev => toast(ev.error === "not-allowed" ? "Allow microphone access to speak." : t("error"));
+  $("#micBtn").classList.add("listening"); rec.start();
+};
+
+/* ---------------- examples ---------------- */
+function renderChips() {
+  const box = $("#chips");
+  const list = [...state.samples].sort((a, b) => (b.lang === state.lang) - (a.lang === state.lang));
+  box.innerHTML = list.map(s => `<button data-id="${s.id}" lang="${s.lang}">${esc(s.label)}</button>`).join("");
+  box.querySelectorAll("button").forEach(b => b.onclick = () => {
+    const s = state.samples.find(x => x.id === b.dataset.id);
+    submitCheck({ text: s.text });
+  });
+}
+
+/* ---------------- settings ---------------- */
+$("#settingsBtn").onclick = () => {
+  const p = $("#settings"); const open = p.hidden;
+  p.hidden = !open; $("#settingsBtn").setAttribute("aria-expanded", String(open));
+};
+function fillSettings() {
+  const s = state.settings;
+  document.querySelectorAll('input[name="share"]').forEach(r => r.checked = r.value === s.sharing_level);
+  $("#guardianName").value = s.guardian_name || "";
+}
+$("#saveSettings").onclick = async () => {
+  const level = document.querySelector('input[name="share"]:checked')?.value;
+  state.settings = await api("/api/settings", { sharing_level: level, guardian_name: $("#guardianName").value });
+  toast(t("saved")); refreshDash();
+};
+$("#autoSpeak").onchange = e => state.autoSpeak = e.target.checked;
+document.querySelectorAll(".langs button").forEach(b => b.onclick = () => { state.lang = b.dataset.lang; applyLang(); });
+
+/* ---------------- family dashboard ---------------- */
+function ago(ts) {
+  const s = Math.max(0, Date.now() / 1000 - ts);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  return new Date(ts * 1000).toLocaleDateString();
+}
+function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
+function timesWord(n) { return n === 0 ? "hasn't asked you about anything" : n === 1 ? "asked you once" : n === 2 ? "asked you twice" : `asked you ${n} times`; }
+
+function entityLine(e) {
+  const parts = [];
+  if (e.phones.length) parts.push(["Phone", e.phones.join(", ")]);
+  if (e.upi_ids.length) parts.push(["UPI ID", e.upi_ids.join(", ")]);
+  if (e.hosts.length) parts.push(["Website", e.hosts.join(", ")]);
+  return parts;
+}
+
+async function refreshDash() {
+  let d;
+  try { d = await api("/api/guardian"); } catch { return; }
+  const s = d.settings, elder = s.elder_name, g = s.guardian_name || "you";
+  $("#dashTitle").textContent = `${elder}'s protection`;
+  $("#phoneLabel").textContent = `${elder}'s phone`;
+  $("#tabElder").textContent = `${elder}'s phone`;
+  $("#dashSub").textContent = `Signed in as ${g}. ${elder} shares ${SHARE_TEXT[s.sharing_level]}.`;
+  const st = d.stats;
+  $("#week").innerHTML = st.checked_week === 0
+    ? `${esc(elder)} hasn't checked anything this week yet.`
+    : `This week ${esc(elder)} checked <strong>${plural(st.checked_week, "message", "messages")}</strong>. ` +
+      `<strong>${st.high_week}</strong> ${st.high_week === 1 ? "was" : "were"} serious, and she ${timesWord(st.asked_week)}.`;
+
+  const open = d.alerts.filter(a => !a.handled);
+  const newest = Math.max(0, ...open.map(a => a.id));
+  if (newest > state.lastSeenAlert && state.lastSeenAlert !== 0 && window.innerWidth <= 900 && $("#stage").dataset.view === "elder") toast("New alert in Family view");
+  state.lastSeenAlert = Math.max(state.lastSeenAlert, newest, 1);
+
+  $("#alerts").innerHTML = open.length ? open.map(a => {
+    const c = a.case;
+    const why = a.reason === "asked" ? `${esc(elder)} asked you to look at this` : "Serious warning, shared automatically";
+    return `<div class="alert ${a.reason === "asked" ? "asked" : ""}">
+      <p class="why">${why}</p>
+      <p class="what">${esc(c.category_name)} <span class="risk ${c.risk}" style="margin-left:6px">${RISK_WORD[c.risk]}</span> <span style="color:var(--ink-3);font-size:14px">\u00b7 ${ago(a.created)}</span></p>
+      ${c.signals.length ? `<ul class="tags">${c.signals.slice(0, 5).map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      <div class="row">
+        <button class="btn" data-call>Call ${esc(elder)}</button>
+        <button class="btn ghost" data-handle="${a.id}">Mark as handled</button>
+      </div></div>`;
+  }).join("") : `<p class="empty">Nothing needs you right now. Alerts appear here when ${esc(elder)} asks for help or gets a serious warning.</p>`;
+  document.querySelectorAll("[data-call]").forEach(b => b.onclick = () => toast(`In the real app this calls ${elder} (${s.guardian_phone ? "saved number" : "no number saved"}).`));
+  document.querySelectorAll("[data-handle]").forEach(b => b.onclick = async () => { await api(`/api/alerts/${b.dataset.handle}/handled`, {}); refreshDash(); });
+
+  const openIds = new Set([...document.querySelectorAll("#cases details[open]")].map(x => x.dataset.id));
+  $("#cases").innerHTML = d.cases.length ? d.cases.map(c => {
+    const flags = [c.asked_family ? "asked you" : "", c.reported ? "reported" : "", c.input_type === "image" ? "screenshot" : ""].filter(Boolean).join(", ");
+    const ents = entityLine(c.entities);
+    return `<li><details data-id="${c.id}" ${openIds.has(String(c.id)) ? "open" : ""}>
+      <summary><span class="risk ${c.risk}">${RISK_WORD[c.risk]}</span>
+        <span class="cat">${esc(c.category_name)}${flags ? `<span class="flags">${esc(flags)}</span>` : ""}</span>
+        <time>${ago(c.created)}</time></summary>
+      <div class="detail"><dl>
+        ${c.signals.length ? `<dt>Warning signs</dt><dd>${c.signals.map(esc).join("; ")}</dd>` : ""}
+        ${ents.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}
+        <dt>Message</dt><dd>${c.text ? `<blockquote lang="${c.lang}">${esc(c.text)}</blockquote>` : `Hidden. ${esc(elder)} shares summaries only.`}</dd>
+      </dl></div></details></li>`;
+  }).join("") : `<li><p class="empty">No checks shared with you yet.</p></li>`;
+
+  $("#privacy").textContent = `${elder} chooses what you can see and can change it at any time from her phone. Phone numbers and UPI IDs are partly hidden here.`;
+}
+
+/* ---------------- views, reset, boot ---------------- */
+document.querySelectorAll(".views button").forEach(b => b.onclick = () => {
+  $("#stage").dataset.view = b.dataset.view;
+  document.querySelectorAll(".views button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+});
+$("#resetBtn").onclick = async () => {
+  if (!confirm("Clear all demo checks, alerts and settings?")) return;
+  await api("/api/reset", {});
+  state.settings = await api("/api/settings"); fillSettings(); welcome(); refreshDash();
+};
+
+(async function boot() {
+  try {
+    const [status, settings, samples] = await Promise.all([api("/api/status"), api("/api/settings"), api("/api/samples")]);
+    state.ai = status.ai; state.settings = settings; state.samples = samples;
+    const pill = $("#aiPill");
+    pill.textContent = status.ai ? "AI checking on" : "Rules only";
+    pill.title = status.ai ? `Model: ${status.model}` : "Add ANTHROPIC_API_KEY to read screenshots and catch subtler scams";
+    pill.classList.toggle("on", status.ai);
+  } catch {
+    $("#aiPill").textContent = "Server not reachable";
+  }
+  fillSettings(); applyLang(); welcome(); refreshDash();
+  setInterval(refreshDash, 2500);
+})();
+</script>
+</body>
+</html>

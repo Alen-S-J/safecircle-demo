@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SafeCircle · Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F0F2EE;--surf:#FFF;--line:#DDE0DA;
+  --ink:#1A2038;--ink2:#4D566B;--ink3:#8C95A8;
+  --brand:#0F6B6F;--brand-t:#D8EDEC;--brand-ink:#FFF;
+  --threat:#3A2E48;--threat-t:#EDE9F5;
+  --high:#B22D1A;--high-t:#FBE5E1;
+  --mid:#B87600;--mid-t:#FEF1CC;
+  --low:#287044;--low-t:#E0EFE5;
+  --bub-scam:#EDE9F5;--bub-user:#D6EFDF;
+  --bub-agent:#CCE9EB;--bub-sys:#F0F2EE;
+  --font:"Mukta","Noto Sans Devanagari",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#131720;--surf:#1C2233;--line:#272F42;
+  --ink:#DDE3F0;--ink2:#9AA5BC;--ink3:#5C6880;
+  --brand:#3BA8A9;--brand-t:#143436;--brand-ink:#041A1C;
+  --threat:#B09AC8;--threat-t:#1F1830;
+  --high:#F07A62;--high-t:#391A15;
+  --mid:#EDBC58;--mid-t:#33260E;
+  --low:#6BBF88;--low-t:#15301E;
+  --bub-scam:#22193A;--bub-user:#1A3828;
+  --bub-agent:#143638;--bub-sys:#1C2233;
+  color-scheme:dark;
+}}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:var(--font);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+/* ── Top bar ── */
+.topbar{position:fixed;top:0;left:0;right:0;height:48px;display:flex;align-items:center;gap:10px;padding:0 16px;background:var(--surf);border-bottom:1px solid var(--line);z-index:10}
+.logo{font-weight:700;font-size:18px;display:flex;align-items:center;gap:7px}
+.logo .ring{width:16px;height:16px;border-radius:50%;border:3px solid var(--brand);position:relative}
+.logo .ring::after{content:"";position:absolute;inset:2px;background:var(--brand);border-radius:50%}
+.sp{flex:1}
+.pill{font-size:12px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--ink3)}
+.pill.on{border-color:var(--brand);color:var(--brand)}
+.top-link{font-size:12px;color:var(--ink3);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:2px 8px}
+.top-link:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ── Three-panel grid ── */
+.panels{position:fixed;top:48px;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr 1fr 280px}
+
+/* ── Panel shared ── */
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--line);overflow:hidden}
+.panel:last-child{border-right:0}
+.ph{flex:none;display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surf)}
+.ph .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.ph .ptitle{font-weight:700;font-size:15px}
+.ph .psub{font-size:12px;color:var(--ink3)}
+.ph .sp{flex:1}
+
+/* ── Chat areas ── */
+.chat{flex:1;min-height:0;overflow-y:auto;padding:10px 10px 4px;display:flex;flex-direction:column;gap:6px;overscroll-behavior:contain;scroll-behavior:smooth}
+.chat>*{flex-shrink:0}
+.row{display:flex;flex-direction:column}
+.row.r{align-items:flex-end}
+.lbl{font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--ink3);margin-bottom:2px;padding:0 4px}
+.row.r .lbl{text-align:right}
+.bubble{max-width:82%;padding:7px 11px;border-radius:14px;font-size:15px;line-height:1.5;word-wrap:break-word;white-space:pre-wrap}
+.bubble.scam{background:var(--bub-scam);border-bottom-left-radius:3px}
+.bubble.user{background:var(--bub-user);border-bottom-right-radius:3px}
+.bubble.agent{background:var(--bub-agent);border-bottom-left-radius:3px;border-left:3px solid var(--brand)}
+.bubble.sys{background:var(--bub-sys);color:var(--ink3);font-style:italic;font-size:13px;align-self:center;max-width:100%;text-align:center;border-radius:8px}
+.fwd{display:inline-flex;align-items:center;gap:3px;margin-top:3px;font-size:11px;font-weight:600;color:var(--brand);border:1px solid var(--brand);border-radius:6px;padding:1px 7px;background:transparent}
+.fwd:hover{background:var(--brand-t)}
+.fwd.done{color:var(--ink3);border-color:var(--line);cursor:default}
+.dots span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--ink3);margin:0 2px;animation:d .9s ease-in-out infinite}
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+@keyframes d{0%,60%,100%{transform:none}30%{transform:translateY(-5px)}}
+@media(prefers-reduced-motion:reduce){.dots span{animation:none}}
+
+/* ── Verdict card ── */
+.vcard{border-radius:12px;overflow:hidden;font-size:14px;animation:pop .22s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.vcard{animation:none}}
+.vcard .band{display:flex;align-items:flex-start;gap:8px;padding:10px 12px}
+.vcard .glyph{width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;color:#fff}
+.vcard .hed{font-weight:700;font-size:16px;line-height:1.25;flex:1}
+.vcard.high .band{background:var(--high-t);color:var(--high)}.vcard.high .glyph{background:var(--high)}
+.vcard.critical .band{background:var(--high-t);color:var(--high)}.vcard.critical .glyph{background:var(--high);box-shadow:0 0 0 3px var(--high-t)}
+.vcard.medium .band{background:var(--mid-t);color:var(--mid)}.vcard.medium .glyph{background:var(--mid)}
+.vcard.low .band{background:var(--low-t);color:var(--low)}.vcard.low .glyph{background:var(--low)}
+.vcard.none .band{background:var(--low-t);color:var(--low)}.vcard.none .glyph{background:var(--low)}
+.chips-meta{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.chip-meta{font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--ink2);background:var(--bg)}
+.chip-meta.sev-critical,.chip-meta.sev-high{border-color:var(--high);color:var(--high)}
+.chip-meta.sev-medium{border-color:var(--mid);color:var(--mid)}
+.agent-log{font-size:12px;color:var(--ink2);background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:6px 9px;margin:4px 0;line-height:1.45}
+.agent-log strong{color:var(--brand)}
+.draft-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.draft-item{background:var(--surf);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.draft-item .dlabel{font-size:11px;font-weight:700;color:var(--brand);margin-bottom:3px}
+.draft-item .dactions{display:flex;gap:5px;margin-top:6px}
+.draft-item .dactions button{flex:1;min-height:30px;border-radius:7px;border:1px solid var(--line);background:transparent;font-size:12px;font-weight:600}
+.draft-item .dactions button.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.risk-dot.critical{background:var(--high);box-shadow:0 0 0 2px var(--high-t)}
+.tog{display:flex;align-items:center;gap:6px;font-size:12px;margin:6px 0;color:var(--ink2)}
+.review-badge{font-size:10px;font-weight:700;color:var(--mid);border:1px solid var(--mid);border-radius:4px;padding:0 4px;margin-left:4px}
+.vcard .body{padding:8px 12px 2px;background:var(--surf)}
+.vcard ul{padding-left:16px;margin-bottom:6px}
+.vcard li{font-size:14px;margin:2px 0}
+.vcard .act{font-weight:600;font-size:14px;margin-bottom:4px}
+.vcard .foot{font-size:12px;color:var(--ink2);margin-bottom:8px}
+.vcard .btns{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.vcard .btns button{border:0;border-top:1px solid var(--line);background:transparent;color:var(--brand);font-weight:600;font-size:14px;min-height:42px;padding:6px 12px;text-align:center;transition:background .12s}
+.vcard .btns button:first-child{border-top:0}
+.vcard .btns button:hover{background:var(--brand-t)}
+.vcard .btns button.danger{color:var(--high)}
+.vcard .btns button.danger:hover{background:var(--high-t)}
+.vcard .btns button:disabled{color:var(--ink3);cursor:default;background:transparent}
+
+/* ── Steps list ── */
+.steps{padding-left:18px;margin:4px 0}
+.steps li{font-size:14px;margin:4px 0}
+
+/* ── Takeover bar ── */
+.takebar{flex:none;display:flex;align-items:center;gap:8px;padding:7px 12px;border-top:2px solid var(--brand);background:var(--brand-t);font-size:13px;color:var(--ink2)}
+.takebar .sp{flex:1}
+.takebar strong{color:var(--brand)}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--brand);animation:pulse 1.2s ease-in-out infinite;flex:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){.pulse{animation:none}}
+.stopbtn{border:1px solid var(--line);background:transparent;border-radius:7px;padding:3px 10px;font-size:12px;font-weight:600}
+
+/* ── Composer ── */
+.composer{flex:none;display:flex;gap:5px;align-items:flex-end;padding:7px;border-top:1px solid var(--line);background:var(--surf)}
+.role-wrap{display:flex;flex-direction:column;gap:3px;flex:none}
+.rbtn{border:1px solid var(--line);border-radius:7px;background:transparent;font-size:11px;font-weight:600;padding:3px 7px;min-height:28px;color:var(--ink3)}
+.rbtn.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.composer textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line);border-radius:14px;padding:7px 11px;font-size:15px;background:var(--bg);max-height:90px;min-height:38px;line-height:1.35}
+.sendbtn{flex:none;width:38px;height:38px;border-radius:50%;border:0;display:grid;place-items:center;background:var(--brand);color:var(--brand-ink)}
+.sendbtn.threat{background:var(--threat)}
+.sendbtn:hover{filter:brightness(1.1)}
+
+/* ── Lang row ── */
+.langrow{flex:none;display:flex;gap:3px;padding:5px 10px;border-bottom:1px solid var(--line)}
+.langrow button{border:1px solid var(--line);border-radius:7px;background:transparent;font-size:12px;padding:3px 8px;min-height:26px}
+.langrow button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+
+/* ── Draft banner ── */
+.draft-banner{flex:none;padding:8px 10px;background:var(--brand-t);border-top:1px solid var(--line);font-size:14px;display:none}
+.draft-banner.show{display:block}
+.draft-banner .dtxt{background:var(--surf);border:1px solid var(--line);border-radius:8px;padding:6px 9px;margin:4px 0 7px;white-space:pre-wrap;word-wrap:break-word}
+.draft-banner .drow{display:flex;gap:6px}
+.draft-banner .drow button{flex:1;min-height:34px;border-radius:8px;border:0;font-size:13px;font-weight:600}
+.approveBtn{background:var(--brand);color:var(--brand-ink)}
+.discardBtn{background:transparent;border:1px solid var(--line)!important;border:1px solid var(--line)}
+
+/* ── Family panel ── */
+.fam{overflow-y:auto;padding:10px}
+.fam h3{font-size:13px;font-weight:700;margin:10px 0 5px;color:var(--ink2)}
+.fam h3:first-child{margin-top:0}
+.week-stat{font-size:13px;line-height:1.55;color:var(--ink)}
+.week-stat strong{font-weight:700}
+.alert-card{border-left:3px solid var(--high);border-radius:6px;background:var(--high-t);padding:8px 9px;margin-bottom:6px;font-size:13px}
+.alert-card.asked{border-color:var(--brand);background:var(--brand-t)}
+.alert-card .awhy{font-weight:700;font-size:13px;margin-bottom:2px}
+.alert-card .atags{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}
+.alert-card .atag{font-size:11px;padding:1px 7px;border-radius:5px;background:var(--surf);color:var(--ink2)}
+.alert-card .abtns{display:flex;gap:5px;margin-top:6px}
+.alert-card .abtns button{flex:1;min-height:30px;border-radius:7px;border:0;font-size:12px;font-weight:600}
+.callbtn{background:var(--brand);color:var(--brand-ink)}
+.handbtn{background:transparent;border:1px solid var(--line)!important;border:1px solid var(--line);font-size:12px}
+.case-row{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px}
+.case-row:last-child{border-bottom:0}
+.risk-dot{width:7px;height:7px;border-radius:50%;flex:none}
+.risk-dot.high{background:var(--high)}
+.risk-dot.medium{background:var(--mid)}
+.risk-dot.low{background:var(--low)}
+.case-cat{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.case-time{color:var(--ink3);white-space:nowrap}
+.empty{color:var(--ink3);font-size:13px;padding:4px 0;font-style:italic}
+
+/* ── Sample chips ── */
+.chips-wrap{flex:none;padding:5px 8px;border-bottom:1px solid var(--line);background:var(--surf)}
+.chips{display:flex;gap:5px;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px}
+.chip{flex:none;border:1px solid var(--line);border-radius:99px;padding:3px 11px;font-size:12px;background:transparent;white-space:nowrap}
+.chip:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ── Toast ── */
+.toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:7px 14px;border-radius:9px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:99;max-width:88vw;text-align:center}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="logo"><span class="ring"></span>SafeCircle</div>
+  <span class="sp"></span>
+  <span class="pill" id="aiPill">…</span>
+  <span class="pill" id="mlPill">ML …</span>
+  <button onclick="newConversation()" style="font-size:12px;border:1px solid var(--line);border-radius:8px;background:transparent;padding:2px 8px;cursor:pointer">New conversation</button>
+  <a href="/" class="top-link">← Main demo</a>
+  <button onclick="resetAll()" style="font-size:12px;border:0;background:transparent;color:var(--ink3);text-decoration:underline;cursor:pointer">Reset</button>
+</header>
+
+<div class="panels">
+
+  <!-- ══════ PANEL 1: THREAT CHANNEL ══════ -->
+  <div class="panel" id="p1">
+    <div class="ph">
+      <span class="dot" style="background:var(--threat)"></span>
+      <span class="ptitle">Threat channel</span>
+      <span class="psub" style="margin-left:3px">Scammer ↔ User</span>
+      <span class="sp"></span>
+      <span id="p1status" style="font-size:11px;color:var(--ink3)"></span>
+    </div>
+    <div class="langrow" role="group">
+      <button data-lang="en" aria-pressed="true">EN</button>
+      <button data-lang="hi" aria-pressed="false">HI</button>
+      <button data-lang="mr" aria-pressed="false">MR</button>
+    </div>
+    <div class="chips-wrap">
+      <div class="chips" id="sampleChips"></div>
+    </div>
+    <div class="chat" id="chat1" aria-live="polite"></div>
+    <!-- agent takeover bar (hidden until active) -->
+    <div class="takebar" id="takebar" hidden>
+      <span class="pulse"></span>
+      <strong>Agent active</strong>
+      <span>— replying as user</span>
+      <span class="sp"></span>
+      <button class="stopbtn" onclick="stopAgent()">Stop</button>
+    </div>
+    <form class="composer" id="f1" autocomplete="off">
+      <div class="role-wrap">
+        <button type="button" class="rbtn on" id="rScam" onclick="setRole('scammer')">Scammer</button>
+        <button type="button" class="rbtn" id="rUser" onclick="setRole('user')">User</button>
+      </div>
+      <textarea id="t1" rows="1" placeholder="Type as scammer…"></textarea>
+      <button type="submit" class="sendbtn threat" aria-label="Send">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4 21 12 3.4 3.6l-.02 6.5L15 12 3.38 13.9z"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <!-- ══════ PANEL 2: APP / AGENT ══════ -->
+  <div class="panel" id="p2">
+    <div class="ph">
+      <span class="dot" style="background:var(--brand)"></span>
+      <span class="ptitle">SafeCircle</span>
+      <span class="psub" style="margin-left:3px">App + Agent</span>
+      <span class="sp"></span>
+      <span id="p2status" style="font-size:11px;color:var(--ink3)"></span>
+    </div>
+    <div class="chat" id="chat2" aria-live="polite"></div>
+    <!-- draft reply banner -->
+    <div class="draft-banner" id="draftBanner">
+      <div style="font-size:11px;font-weight:700;color:var(--brand);margin-bottom:3px">Suggested reply for threat channel</div>
+      <div id="draftTxt" class="dtxt"></div>
+      <div class="drow">
+        <button class="approveBtn" onclick="approveDraft()">Send in threat channel</button>
+        <button class="discardBtn" onclick="discardDraft()">Discard</button>
+      </div>
+    </div>
+    <form class="composer" id="f2" autocomplete="off">
+      <textarea id="t2" rows="1" placeholder="Ask SafeCircle or paste a message…"></textarea>
+      <button type="submit" class="sendbtn" aria-label="Send">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4 21 12 3.4 3.6l-.02 6.5L15 12 3.38 13.9z"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <!-- ══════ PANEL 3: FAMILY DASHBOARD ══════ -->
+  <div class="panel" id="p3">
+    <div class="ph">
+      <span class="dot" style="background:var(--low)"></span>
+      <span class="ptitle">Rohan's view</span>
+      <span class="psub" style="margin-left:3px">Family</span>
+    </div>
+    <div class="fam" id="fam"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const S = {
+  lang: 'en',
+  role: 'scammer',
+  caseId: null,
+  th: [],          // threat history [{role,text}]
+  agentOn: false,
+  agentLoop: null,
+  draft: null,
+  drafts: null,
+  ai: false,
+  demoTakeover: true,
+};
+
+const GLYPH = {critical:'!!', high:'!', medium:'?', low:'i', none:'i'};
+const RISK_WORD = {critical:'Critical', high:'Serious', medium:'Caution', low:'OK', none:'OK'};
+const SIGNAL_LIMIT = 3;
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ── API ────────────────────────────────────────────────────────────────────
+async function api(path, body) {
+  const o = body===undefined ? {} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
+  const r = await fetch(path, o);
+  const d = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(d.error||'Request failed');
+  return d;
+}
+
+function toast(m) {
+  const el = $('toast');
+  el.textContent = m; el.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(()=>el.classList.remove('show'), 2600);
+}
+
+// ── Chat helpers ───────────────────────────────────────────────────────────
+function scroll(id) { requestAnimationFrame(()=>{ const el=$(id); el.scrollTop=el.scrollHeight; }); }
+
+function addBubble(chatId, role, text, opts={}) {
+  const chat = $(chatId);
+  const isRight = role==='user'||role==='sc-user';
+  const row = document.createElement('div');
+  row.className = 'row' + (isRight?' r':'');
+  const lbl = document.createElement('div');
+  lbl.className = 'lbl';
+  lbl.textContent = {scammer:'Scammer', user:'User', agent:'SafeCircle Agent', 'sc-user':'User', sys:''}[role]||role;
+  const b = document.createElement('div');
+  b.className = 'bubble ' + (role==='sc-user'?'user':role);
+  if (opts.typing) b.innerHTML = '<span class="dots"><span></span><span></span><span></span></span>';
+  else b.textContent = text;
+  if (role!=='sys') row.appendChild(lbl);
+  row.appendChild(b);
+  if (opts.fwd) {
+    const fb = document.createElement('button');
+    fb.className = 'fwd';
+    fb.textContent = '⤴ Forward to SafeCircle';
+    fb.dataset.text = text;
+    fb.onclick = () => forwardMsg(text, fb, 'other');
+    row.appendChild(fb);
+  }
+  if (opts.tell) {
+    const tb = document.createElement('button');
+    tb.className = 'fwd';
+    tb.textContent = 'Tell SafeCircle';
+    tb.onclick = () => forwardMsg(text, tb, 'elder');
+    row.appendChild(tb);
+  }
+  chat.appendChild(row);
+  scroll(chatId);
+  return b;
+}
+
+function addAgentLog(trace) {
+  if (!trace || !trace.length) return;
+  const el = document.createElement('div');
+  el.className = 'agent-log';
+  const bits = [];
+  for (const t of trace) {
+    if (t.step === 'rules') bits.push(`<strong>Rules</strong> floor=${esc(t.floor)} · ${esc(t.category)} · stage=${esc(t.stage)}`);
+    else if (t.step === 'ml') bits.push(t.scam_probability!=null ? `<strong>ML</strong> p=${Number(t.scam_probability).toFixed(2)}` : `<strong>ML</strong> off`);
+    else if (t.step === 'detection') bits.push(t.scam_probability!=null ? `<strong>Detection</strong> p=${Number(t.scam_probability).toFixed(2)} · ${esc((t.categories||[]).join(','))}` : `<strong>Detection</strong> ${esc(t.status||'ok')}`);
+    else if (t.step === 'judge') bits.push(`<strong>Judge</strong> ${esc(t.verdict||t.status)} → ${esc(t.recommended_severity||'')}`);
+    else if (t.step === 'family_alert') bits.push(`<strong>Alert</strong> ${esc(t.reason)}`);
+    else if (t.step === 'recovery_script') bits.push(`<strong>Recovery</strong> 1930 script`);
+    else if (t.step === 'nudge') bits.push(`<strong>Nudge</strong> re-warn`);
+  }
+  if (bits.length) { el.innerHTML = bits.join('<br>'); $('chat2').appendChild(el); scroll('chat2'); }
+}
+
+function addVerdict(result) {
+  const c2 = $('chat2');
+  const cid = result.case_id;
+  const rep = result.reply;
+  const sev = result.severity || result.risk || 'none';
+
+  addAgentLog(result.trace);
+
+  const card = document.createElement('article');
+  card.className = 'vcard ' + (sev === 'critical' ? 'critical' : (result.risk || sev));
+
+  const band = document.createElement('div'); band.className = 'band';
+  const g = document.createElement('span'); g.className = 'glyph'; g.textContent = GLYPH[sev]||GLYPH[result.risk]||'i';
+  const h = document.createElement('p'); h.className = 'hed'; h.textContent = rep.headline;
+  band.appendChild(g); band.appendChild(h);
+
+  const body = document.createElement('div'); body.className = 'body';
+  const meta = document.createElement('div'); meta.className = 'chips-meta';
+  meta.innerHTML = `<span class="chip-meta sev-${esc(sev)}">${esc(RISK_WORD[sev]||sev)}</span>`
+    + `<span class="chip-meta">stage: ${esc(result.stage||'contact')}</span>`
+    + (result.scam_probability!=null ? `<span class="chip-meta">ML/AI p=${Number(result.scam_probability).toFixed(2)}</span>` : '')
+    + (result.ml && result.ml.scam_probability!=null ? `<span class="chip-meta">ML ${Number(result.ml.scam_probability).toFixed(2)}</span>` : '');
+  body.appendChild(meta);
+
+  if (rep.reasons?.length) {
+    const ul = document.createElement('ul');
+    rep.reasons.slice(0,SIGNAL_LIMIT).forEach(r=>{ const li=document.createElement('li'); li.textContent=r; ul.appendChild(li); });
+    body.appendChild(ul);
+  }
+  if (rep.action) { const p=document.createElement('p'); p.className='act'; p.textContent=rep.action; body.appendChild(p); }
+  if (result.elder_notice) { const p=document.createElement('p'); p.className='act'; p.textContent=result.elder_notice; body.appendChild(p); }
+  const ft = document.createElement('p'); ft.className='foot'; ft.textContent=rep.footer; body.appendChild(ft);
+
+  if (result.recovery?.length) {
+    const ol=document.createElement('ol'); ol.className='steps';
+    result.recovery.forEach(s=>{const li=document.createElement('li');li.textContent=s;ol.appendChild(li);});
+    const rp=document.createElement('p'); rp.className='act'; rp.textContent='Recovery — do this now:';
+    body.appendChild(rp); body.appendChild(ol);
+  }
+
+  const btns = document.createElement('div'); btns.className='btns';
+  const mkBtn = (txt, cls, fn) => {
+    const b=document.createElement('button'); b.textContent=txt;
+    if(cls) b.classList.add(cls); b.onclick=fn; return b;
+  };
+  if (sev!=='none' && sev!=='low' && result.risk!=='low') {
+    btns.appendChild(mkBtn('Inform family', '', ()=>doAskFamily(cid)));
+    if (S.ai && result.offer_reply_assistant!==false) btns.appendChild(mkBtn('Suggest a reply', '', ()=>getDraft(cid)));
+    if (S.ai && S.demoTakeover && result.demo_takeover_allowed) btns.appendChild(mkBtn('Agent takes over (demo)', 'danger', ()=>startAgent(cid)));
+  }
+  btns.appendChild(mkBtn('What should I do?', '', ()=>getAdvice(cid)));
+  btns.appendChild(mkBtn('Report this', '', ()=>doReport(cid)));
+  body.appendChild(btns);
+
+  card.appendChild(band); card.appendChild(body);
+  c2.appendChild(card);
+  scroll('chat2');
+}
+
+// ── Panel 1: threat channel ────────────────────────────────────────────────
+$('f1').addEventListener('submit', e => {
+  e.preventDefault();
+  if (S.agentOn && S.role==='scammer') {
+    // agent mode: scammer typed, queue agent reply
+    const txt = $('t1').value.trim();
+    if (!txt) return;
+    $('t1').value=''; autoH($('t1'));
+    S.th.push({role:'scammer', text:txt});
+    addBubble('chat1','scammer',txt);
+    scheduleAgentReply();
+    return;
+  }
+  const txt = $('t1').value.trim(); if(!txt) return;
+  $('t1').value=''; autoH($('t1'));
+  S.th.push({role:S.role, text:txt});
+  addBubble('chat1', S.role, txt, {fwd: S.role==='scammer', tell: S.role==='user'});
+});
+
+// Panel 2: user types directly to SafeCircle
+$('f2').addEventListener('submit', async e => {
+  e.preventDefault();
+  const txt = $('t2').value.trim(); if(!txt) return;
+  $('t2').value=''; autoH($('t2'));
+  addBubble('chat2','sc-user',txt);
+  await runCheck(txt, 'other');
+});
+
+function setRole(r) {
+  S.role = r;
+  $('rScam').classList.toggle('on', r==='scammer');
+  $('rUser').classList.toggle('on', r==='user');
+  $('t1').placeholder = r==='scammer' ? 'Type as scammer…' : 'Type as user (in threat channel)…';
+}
+
+document.querySelectorAll('.langrow button').forEach(b=>b.onclick=()=>{
+  S.lang=b.dataset.lang;
+  document.querySelectorAll('.langrow button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+});
+
+// ── Forward ────────────────────────────────────────────────────────────────
+async function forwardMsg(text, btn, role='other') {
+  if (btn.classList.contains('done')) return;
+  btn.textContent = role==='elder' ? '✓ Told SafeCircle' : '✓ Forwarded';
+  btn.classList.add('done');
+  addBubble('chat2','sc-user',(role==='elder'?'[You said]\n':'[Forwarded]\n')+text);
+  await runCheck(text, role);
+}
+
+async function runCheck(text, role='other') {
+  $('p2status').textContent = 'Checking…';
+  const typing = addBubble('chat2','agent','',{typing:true});
+  try {
+    const body = {text, lang:S.lang, role};
+    if (S.caseId) body.case_id = S.caseId;
+    const r = await api('/api/check', body);
+    typing.parentNode.remove();
+    $('p2status').textContent='';
+    S.caseId = r.case_id;
+    if (r.status==='ok') addVerdict(r);
+    else addBubble('chat2','agent',r.message||'Paste the message as text.');
+    refreshFam();
+  } catch(err) {
+    typing.parentNode.remove(); $('p2status').textContent='';
+    addBubble('chat2','agent','Something went wrong. Try again.');
+  }
+}
+
+// ── Verdict actions ────────────────────────────────────────────────────────
+async function doAskFamily(cid) {
+  try {
+    const r = await api(`/api/cases/${cid}/ask-family`,{lang:S.lang});
+    addBubble('chat2','agent',r.message||'Family notified.');
+    refreshFam();
+  } catch(e){toast(e.message);}
+}
+
+async function doReport(cid) {
+  try {
+    const r = await api(`/api/cases/${cid}/report`,{lang:S.lang});
+    addBubble('chat2','agent',r.message||'Reported.');
+  } catch(e){toast(e.message);}
+}
+
+async function getAdvice(cid) {
+  try {
+    const r = await api(`/api/cases/${cid}/advice?lang=${S.lang}`);
+    if (r.steps) {
+      const ol=document.createElement('ol'); ol.className='steps';
+      r.steps.forEach(s=>{const li=document.createElement('li');li.textContent=s;ol.appendChild(li);});
+      const b=document.createElement('div'); b.className='bubble agent'; b.style.maxWidth='92%'; b.appendChild(ol);
+      const lbl=document.createElement('div'); lbl.className='lbl'; lbl.textContent='SafeCircle Agent';
+      const row=document.createElement('div'); row.className='row'; row.appendChild(lbl); row.appendChild(b);
+      $('chat2').appendChild(row); scroll('chat2');
+    }
+  } catch(e){toast(e.message);}
+}
+
+// ── Draft reply ────────────────────────────────────────────────────────────
+async function getDraft(cid) {
+  if (!S.ai){toast('Enable AI for draft replies.');return;}
+  $('p2status').textContent='Drafting…';
+  try {
+    const r = await api('/api/agent/draft',{case_id:cid,history:S.th.slice(-8),lang:S.lang});
+    $('p2status').textContent='';
+    showDrafts(r);
+  } catch(e){$('p2status').textContent='';toast('Draft failed: '+e.message);}
+}
+
+function showDrafts(payload) {
+  S.drafts = payload;
+  const box = $('draftBanner');
+  const dont = payload.dont_reply || {text: "Don't reply", id:'dont_reply'};
+  const drafts = payload.drafts || [];
+  let html = `<div style="font-size:11px;font-weight:700;color:var(--brand);margin-bottom:3px">Reply Assistant — pick one (you send it)</div>`;
+  if (payload.recommend_no_reply) html += `<div style="font-size:12px;color:var(--ink2);margin-bottom:4px">Recommended: Don't reply</div>`;
+  html += `<div class="draft-list">`;
+  html += `<div class="draft-item"><div class="dlabel">Don't reply</div><div>${esc(dont.text||"Don't reply")}</div>
+    <div class="dactions"><button class="primary" onclick="discardDraft()">Keep silent</button></div></div>`;
+  drafts.forEach((d,i)=>{
+    html += `<div class="draft-item"><div class="dlabel">${esc(d.purpose||'draft')} · ${esc(d.id||('d'+(i+1)))}</div>
+      <div>${esc(d.text)}</div>
+      <div class="dactions">
+        <button class="primary" onclick="approveDraftIdx(${i})">Send in threat channel</button>
+        <button onclick="copyDraftIdx(${i})">Copy</button>
+      </div></div>`;
+  });
+  html += `</div><div style="margin-top:6px"><button class="discardBtn" onclick="discardDraft()" style="min-height:30px;border-radius:8px;padding:4px 10px;font-size:12px">Dismiss</button></div>`;
+  box.innerHTML = html;
+  box.classList.add('show');
+}
+
+function approveDraftIdx(i) {
+  const d = (S.drafts?.drafts||[])[i];
+  if (!d) return;
+  const txt = d.text; discardDraft();
+  S.th.push({role:'user',text:txt});
+  addBubble('chat1','sc-user',txt);
+  addBubble('chat2','agent','Sent in threat channel ✓');
+  // Record as elder-side item for the case.
+  if (S.caseId) api('/api/check',{text:txt, lang:S.lang, role:'elder', case_id:S.caseId}).catch(()=>{});
+}
+
+function copyDraftIdx(i) {
+  const d = (S.drafts?.drafts||[])[i];
+  if (!d) return;
+  navigator.clipboard?.writeText(d.text).then(()=>toast('Copied')).catch(()=>toast(d.text));
+}
+
+function showDraft(text) {
+  showDrafts({recommend_no_reply:true, drafts:[{id:'d1',purpose:'end',text}], dont_reply:{text:"Don't reply"}});
+}
+
+function approveDraft() {
+  if (S.drafts?.drafts?.length) return approveDraftIdx(0);
+}
+
+function discardDraft() {
+  S.draft=null; S.drafts=null; $('draftBanner').classList.remove('show'); $('draftBanner').innerHTML='';
+}
+
+// ── Agent takeover ─────────────────────────────────────────────────────────
+async function startAgent(cid) {
+  if (!S.ai){toast('Enable AI for agent takeover.');return;}
+  if (!S.demoTakeover){toast('Demo takeover is disabled.');return;}
+  S.caseId=cid; S.agentOn=true;
+  $('takebar').hidden=false;
+  $('f1').querySelector('button[type=submit]').disabled=true;
+  addBubble('chat2','sys','DEMO: Agent is active in the threat channel. Type as the scammer to continue. Replies are validated drafts — the agent never sends money or codes.');
+  addBubble('chat2','agent','I am responding on your behalf in this demo. I will stall and never comply with any harmful request. Prefer Suggest a reply in real use.');
+  setRole('scammer');
+  scheduleAgentReply();
+}
+
+function scheduleAgentReply() {
+  if (!S.agentOn) return;
+  const last = S.th[S.th.length-1];
+  if (last && last.role==='scammer') agentReplyNow();
+  else { clearTimeout(S.agentLoop); S.agentLoop = setTimeout(scheduleAgentReply, 150); }
+}
+
+async function agentReplyNow() {
+  if (!S.agentOn) return;
+  const typing = addBubble('chat1','agent','',{typing:true});
+  try {
+    const r = await api('/api/agent/engage',{case_id:S.caseId,history:S.th.slice(-12),lang:S.lang});
+    typing.parentNode.remove();
+    if (r.reply) {
+      S.th.push({role:'agent',text:r.reply});
+      addBubble('chat1','agent',r.reply);
+      addBubble('chat2','agent','[Replied in threat channel] '+r.reply);
+    }
+  } catch(e) {
+    typing.parentNode.remove();
+    addBubble('chat1','sys','Agent reply failed. Stop agent and reply manually.');
+    stopAgent(); return;
+  }
+  if (S.agentOn) { clearTimeout(S.agentLoop); S.agentLoop = setTimeout(scheduleAgentReply,150); }
+}
+
+function stopAgent() {
+  S.agentOn=false;
+  clearTimeout(S.agentLoop);
+  $('takebar').hidden=true;
+  $('f1').querySelector('button[type=submit]').disabled=false;
+  addBubble('chat2','sys','Agent stopped. You have control of the threat channel.');
+}
+
+// ── Family dashboard ───────────────────────────────────────────────────────
+function ago(ts){
+  const s=Math.max(0,Date.now()/1000-ts);
+  if(s<60)return'just now';
+  if(s<3600)return Math.floor(s/60)+'m ago';
+  if(s<86400)return Math.floor(s/3600)+'h ago';
+  return new Date(ts*1000).toLocaleDateString();
+}
+const SHARE_TEXT={ask_only:'on request',auto_red:'auto on serious',full:'full access'};
+
+async function refreshFam() {
+  let d; try{d=await api('/api/guardian');}catch{return;}
+  const el=$('fam');
+  const s=d.settings, elder=s.elder_name||'Asha';
+  const st=d.stats;
+  let html=`<p class="week-stat">`;
+  if(st.checked_week===0) html+=`No checks yet this week.`;
+  else html+=`<strong>${st.checked_week}</strong> checked · <strong style="color:var(--high)">${st.high_week}</strong> serious`
+    + (st.critical_week?` · <strong style="color:var(--high)">${st.critical_week}</strong> critical`:'')
+    + ` · asked <strong>${st.asked_week}×</strong>`;
+  html+=`</p>`;
+  html+=`<p style="font-size:11px;color:var(--ink3);margin-top:3px">Sharing: ${SHARE_TEXT[s.sharing_level]||s.sharing_level}</p>`;
+  html+=`<label class="tog"><input type="checkbox" id="emToggle" ${s.emergency_alerts==='1'||s.emergency_alerts===1?'checked':''}/> Emergency alerts if money may be leaving now</label>`;
+
+  const open=d.alerts.filter(a=>!a.handled);
+  if(open.length){
+    html+=`<h3>Needs attention</h3>`;
+    open.slice(0,4).forEach(a=>{
+      const c=a.case;
+      const isAsked=a.reason==='asked';
+      const isEm=a.reason==='emergency';
+      const isNudge=a.reason==='nudge';
+      const tags=(c.signals||[]).slice(0,3).map(sg=>`<span class="atag">${esc(sg)}</span>`).join('');
+      const why = isAsked ? `${esc(elder)} asked you`
+        : isEm ? 'Emergency — possible loss'
+        : isNudge ? 'Digest / follow-up'
+        : 'Serious warning';
+      html+=`<div class="alert-card${isAsked||isNudge?' asked':''}">
+        <div class="awhy">${why}${c.review_flag?'<span class="review-badge">Needs review</span>':''}</div>
+        <div>${esc(c.category_name||c.category)} · ${esc(RISK_WORD[c.severity]||c.severity||c.risk||'')}</div>
+        ${tags?`<div class="atags">${tags}</div>`:''}
+        <div class="abtns">
+          <button class="callbtn" onclick="toast('Call ${esc(elder)} now')">Call ${esc(elder)}</button>
+          <button class="handbtn" onclick="handleAlert(${a.id})">Done</button>
+        </div>
+      </div>`;
+    });
+  } else {
+    html+=`<h3>Needs attention</h3><p class="empty">All clear right now.</p>`;
+  }
+
+  const cases=d.cases.slice(0,8);
+  html+=`<h3>Recent checks</h3>`;
+  if(cases.length===0) html+=`<p class="empty">Nothing checked yet.</p>`;
+  else cases.forEach(c=>{
+    const sev=c.severity||c.risk;
+    html+=`<div class="case-row"><span class="risk-dot ${sev==='critical'?'critical':c.risk}"></span><span class="case-cat">${esc(c.category_name||c.category)}${c.review_flag?' <span class="review-badge">review</span>':''}</span><span class="case-time">${ago(c.created)}</span></div>`;
+  });
+
+  el.innerHTML=html;
+  const tog=$('emToggle');
+  if(tog) tog.onchange=async()=>{
+    await api('/api/settings',{emergency_alerts:tog.checked?'1':'0'}).catch(()=>{});
+    toast(tog.checked?'Emergency alerts on':'Emergency alerts off');
+  };
+}
+
+async function handleAlert(id) {
+  await api(`/api/alerts/${id}/handled`,{}).catch(()=>{});
+  refreshFam();
+}
+
+// ── Textarea auto-height ───────────────────────────────────────────────────
+function autoH(ta){ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,90)+'px';}
+['t1','t2'].forEach(id=>{
+  const ta=$(id);
+  ta.addEventListener('input',()=>autoH(ta));
+  ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ta.closest('form').requestSubmit();}});
+});
+
+// ── Samples ────────────────────────────────────────────────────────────────
+const SAMPLES = [
+  {l:'New number, needs money',lang:'en',role:'scammer',text:"Hi Papa, this is Rahul. My phone fell in water, this is my new number. I need \u20B925,000 urgently for hospital, please send to rahul.k22@ybl. Don't tell mummy."},
+  {l:'Digital arrest (Hindi)',lang:'hi',role:'scammer',text:"\u092E\u0948\u0902 \u092E\u0941\u0902\u092C\u0908 \u092A\u0941\u0932\u093F\u0938 \u0938\u093E\u0907\u092C\u0930 \u0915\u094D\u0930\u093E\u0907\u092E \u0938\u0947 \u092C\u094B\u0932 \u0930\u0939\u093E \u0939\u0942\u0901\u0964 \u0906\u092A\u0915\u0947 \u0928\u093E\u092E \u0915\u0947 \u092A\u093E\u0930\u094D\u0938\u0932 \u092E\u0947\u0902 \u0921\u094D\u0930\u0917\u094D\u0938 \u092E\u093F\u0932\u0947 \u0939\u0948\u0902\u0964 \u0935\u0940\u0921\u093F\u092F\u094B \u0915\u0949\u0932 \u092A\u0930 \u0930\u0939\u0947\u0902, \u0915\u093F\u0938\u0940 \u0915\u094B \u092E\u0924 \u092C\u0924\u093E\u0928\u093E\u0964"},
+  {l:'SBI KYC link',lang:'en',role:'scammer',text:'Dear Customer, your SBI account will be blocked today. Update KYC: http://sbi-kyc-update.xyz/login'},
+  {l:'Electricity cut (Marathi)',lang:'mr',role:'scammer',text:'\u092A\u094D\u0930\u093F\u092F \u0917\u094D\u0930\u093E\u0939\u0915, \u0906\u091C \u0930\u093E\u0924\u094D\u0930\u0940 9:30 \u0935\u093E\u091C\u0924\u093E \u0935\u0940\u091C \u0916\u0902\u0921\u093F\u0924 \u0915\u0947\u0932\u0940 \u091C\u093E\u0908\u0932\u0964 \u0906\u0924\u093E 9876543210 \u0935\u0930 \u0938\u0902\u092A\u0930\u094D\u0915 \u0915\u0930\u093E.'},
+  {l:'Investment scam',lang:'en',role:'scammer',text:'Join our VIP trading group! Guaranteed 5% daily returns. Minimum \u20B910,000. Register now: https://bit.ly/vip-profit'},
+  {l:'Real bank OTP',lang:'en',role:'scammer',text:'482913 is your OTP to log in to SBI YONO. Valid 5 min. Do not share with anyone. -SBI'},
+];
+
+function buildChips(){
+  const box=$('sampleChips');
+  SAMPLES.forEach(s=>{
+    const b=document.createElement('button'); b.className='chip'; b.textContent=s.l;
+    b.onclick=()=>{
+      S.lang=s.lang;
+      document.querySelectorAll('.langrow button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.lang===s.lang)));
+      setRole(s.role);
+      $('t1').value=s.text; autoH($('t1')); $('t1').focus();
+    };
+    box.appendChild(b);
+  });
+}
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+function newConversation() {
+  stopAgent();
+  S.caseId=null; S.th=[];
+  discardDraft();
+  addBubble('chat2','sys','New conversation — next forward starts a fresh case.');
+  toast('New conversation');
+}
+
+async function resetAll() {
+  if (!confirm('Clear everything?')) return;
+  stopAgent();
+  await api('/api/reset',{}).catch(()=>{});
+  $('chat1').innerHTML=''; $('chat2').innerHTML='';
+  discardDraft();
+  S.th=[]; S.caseId=null;
+  $('p1status').textContent=''; $('p2status').textContent='';
+  $('sampleChips').innerHTML='';
+  boot();
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+async function boot() {
+  buildChips();
+  $('takebar').hidden = true;
+  try {
+    const st=await api('/api/status');
+    S.ai=st.ai;
+    S.demoTakeover = st.demo_takeover !== false;
+    $('aiPill').textContent=st.ai?`AI · ${st.model||'openai'}`:'Rules only';
+    $('aiPill').className='pill'+(st.ai?' on':'');
+    const ml = st.ml||{};
+    $('mlPill').textContent = ml.available ? 'ML on' : 'ML off';
+    $('mlPill').className='pill'+(ml.available?' on':'');
+    const welcome = st.ai
+      ? 'Ready. Type as the scammer in the left panel, then tap Forward. Reply Assistant drafts for you; takeover is demo-only.'
+      : 'Running on rules (no API key). Paste messages to check them. Screenshots need AI mode.';
+    addBubble('chat2','sys',welcome);
+  } catch {
+    addBubble('chat2','sys','Server not reachable. Run: python server.py');
+  }
+  refreshFam();
+  setInterval(refreshFam, 2500);
+}
+
+boot();
+</script>
+</body>
+</html>
